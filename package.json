@@ -1,0 +1,19 @@
+{
+  "name": "go-slang",
+  "version": "0.0.1",
+  "description": "Implementation of a virtual machine for Go, written in TypeScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cs4215-go-project/go-slang.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cs4215-go-project/go-slang/issues"
+  },
+  "homepage": "https://github.com/cs4215-go-project/go-slang#readme"
+}
