@@ -15,5 +15,12 @@
   "bugs": {
     "url": "https://github.com/cs4215-go-project/go-slang/issues"
   },
-  "homepage": "https://github.com/cs4215-go-project/go-slang#readme"
+  "homepage": "https://github.com/cs4215-go-project/go-slang#readme",
+  "dependencies": {
+    "antlr4": "^4.13.1-patch-1",
+    "antlr4ts": "^0.5.0-alpha.4"
+  },
+  "devDependencies": {
+    "antlr4ts-cli": "^0.5.0-alpha.4"
+  }
 }
