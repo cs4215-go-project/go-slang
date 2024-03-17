@@ -1,0 +1,7 @@
+.vscode/*
+node_modules/
+/dist
+/tmp
+.npm
+.env
+.DS_Store
