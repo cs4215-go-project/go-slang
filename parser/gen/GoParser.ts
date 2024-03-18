@@ -11,7 +11,6 @@ import {
 	Token, TokenStream,
 	Interval, IntervalSet
 } from 'antlr4';
-import GoParserListener from "./GoParserListener.js";
 import GoParserVisitor from "./GoParserVisitor.js";
 
 // for running tests with parameters, TODO: discuss strategy for typed parameters in CI
@@ -5784,16 +5783,6 @@ export class SourceFileContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_sourceFile;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSourceFile) {
-	 		listener.enterSourceFile(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSourceFile) {
-	 		listener.exitSourceFile(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSourceFile) {
@@ -5819,16 +5808,6 @@ export class PackageClauseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_packageClause;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterPackageClause) {
-	 		listener.enterPackageClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitPackageClause) {
-	 		listener.exitPackageClause(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -5870,16 +5849,6 @@ export class ImportDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_importDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterImportDecl) {
-	 		listener.enterImportDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitImportDecl) {
-	 		listener.exitImportDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitImportDecl) {
@@ -5909,16 +5878,6 @@ export class ImportSpecContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_importSpec;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterImportSpec) {
-	 		listener.enterImportSpec(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitImportSpec) {
-	 		listener.exitImportSpec(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitImportSpec) {
@@ -5940,16 +5899,6 @@ export class ImportPathContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_importPath;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterImportPath) {
-	 		listener.enterImportPath(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitImportPath) {
-	 		listener.exitImportPath(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -5978,16 +5927,6 @@ export class DeclarationContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_declaration;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterDeclaration) {
-	 		listener.enterDeclaration(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitDeclaration) {
-	 		listener.exitDeclaration(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6029,16 +5968,6 @@ export class ConstDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_constDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterConstDecl) {
-	 		listener.enterConstDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitConstDecl) {
-	 		listener.exitConstDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitConstDecl) {
@@ -6069,16 +5998,6 @@ export class ConstSpecContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_constSpec;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterConstSpec) {
-	 		listener.enterConstSpec(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitConstSpec) {
-	 		listener.exitConstSpec(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6111,16 +6030,6 @@ export class IdentifierListContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_identifierList;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterIdentifierList) {
-	 		listener.enterIdentifierList(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitIdentifierList) {
-	 		listener.exitIdentifierList(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitIdentifierList) {
@@ -6151,16 +6060,6 @@ export class ExpressionListContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_expressionList;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExpressionList) {
-	 		listener.enterExpressionList(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExpressionList) {
-	 		listener.exitExpressionList(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6202,16 +6101,6 @@ export class TypeDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeDecl) {
-	 		listener.enterTypeDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeDecl) {
-	 		listener.exitTypeDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeDecl) {
@@ -6236,16 +6125,6 @@ export class TypeSpecContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeSpec;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeSpec) {
-	 		listener.enterTypeSpec(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeSpec) {
-	 		listener.exitTypeSpec(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6275,16 +6154,6 @@ export class AliasDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_aliasDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterAliasDecl) {
-	 		listener.enterAliasDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitAliasDecl) {
-	 		listener.exitAliasDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitAliasDecl) {
@@ -6312,16 +6181,6 @@ export class TypeDefContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeDef;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeDef) {
-	 		listener.enterTypeDef(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeDef) {
-	 		listener.exitTypeDef(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6360,16 +6219,6 @@ export class TypeParametersContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeParameters;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeParameters) {
-	 		listener.enterTypeParameters(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeParameters) {
-	 		listener.exitTypeParameters(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeParameters) {
@@ -6394,16 +6243,6 @@ export class TypeParameterDeclContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeParameterDecl;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeParameterDecl) {
-	 		listener.enterTypeParameterDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeParameterDecl) {
-	 		listener.exitTypeParameterDecl(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6436,16 +6275,6 @@ export class TypeElementContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeElement;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeElement) {
-	 		listener.enterTypeElement(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeElement) {
-	 		listener.exitTypeElement(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeElement) {
@@ -6470,16 +6299,6 @@ export class TypeTermContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeTerm;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeTerm) {
-	 		listener.enterTypeTerm(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeTerm) {
-	 		listener.exitTypeTerm(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6515,16 +6334,6 @@ export class FunctionDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_functionDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterFunctionDecl) {
-	 		listener.enterFunctionDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitFunctionDecl) {
-	 		listener.exitFunctionDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitFunctionDecl) {
@@ -6559,16 +6368,6 @@ export class MethodDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_methodDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterMethodDecl) {
-	 		listener.enterMethodDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitMethodDecl) {
-	 		listener.exitMethodDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitMethodDecl) {
@@ -6590,16 +6389,6 @@ export class ReceiverContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_receiver;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterReceiver) {
-	 		listener.enterReceiver(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitReceiver) {
-	 		listener.exitReceiver(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6641,16 +6430,6 @@ export class VarDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_varDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterVarDecl) {
-	 		listener.enterVarDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitVarDecl) {
-	 		listener.exitVarDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitVarDecl) {
@@ -6682,16 +6461,6 @@ export class VarSpecContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_varSpec;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterVarSpec) {
-	 		listener.enterVarSpec(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitVarSpec) {
-	 		listener.exitVarSpec(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitVarSpec) {
@@ -6719,16 +6488,6 @@ export class BlockContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_block;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterBlock) {
-	 		listener.enterBlock(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitBlock) {
-	 		listener.exitBlock(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6772,16 +6531,6 @@ export class StatementListContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_statementList;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterStatementList) {
-	 		listener.enterStatementList(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitStatementList) {
-	 		listener.exitStatementList(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6847,16 +6596,6 @@ export class StatementContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_statement;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterStatement) {
-	 		listener.enterStatement(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitStatement) {
-	 		listener.exitStatement(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitStatement) {
@@ -6891,16 +6630,6 @@ export class SimpleStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_simpleStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSimpleStmt) {
-	 		listener.enterSimpleStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSimpleStmt) {
-	 		listener.exitSimpleStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSimpleStmt) {
@@ -6922,16 +6651,6 @@ export class ExpressionStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_expressionStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExpressionStmt) {
-	 		listener.enterExpressionStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExpressionStmt) {
-	 		listener.exitExpressionStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -6962,16 +6681,6 @@ export class SendStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_sendStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSendStmt) {
-	 		listener.enterSendStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSendStmt) {
-	 		listener.exitSendStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSendStmt) {
@@ -7000,16 +6709,6 @@ export class IncDecStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_incDecStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterIncDecStmt) {
-	 		listener.enterIncDecStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitIncDecStmt) {
-	 		listener.exitIncDecStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitIncDecStmt) {
@@ -7037,16 +6736,6 @@ export class AssignmentContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_assignment;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterAssignment) {
-	 		listener.enterAssignment(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitAssignment) {
-	 		listener.exitAssignment(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7103,16 +6792,6 @@ export class Assign_opContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_assign_op;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterAssign_op) {
-	 		listener.enterAssign_op(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitAssign_op) {
-	 		listener.exitAssign_op(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitAssign_op) {
@@ -7140,16 +6819,6 @@ export class ShortVarDeclContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_shortVarDecl;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterShortVarDecl) {
-	 		listener.enterShortVarDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitShortVarDecl) {
-	 		listener.exitShortVarDecl(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7179,16 +6848,6 @@ export class LabeledStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_labeledStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterLabeledStmt) {
-	 		listener.enterLabeledStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitLabeledStmt) {
-	 		listener.exitLabeledStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitLabeledStmt) {
@@ -7213,16 +6872,6 @@ export class ReturnStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_returnStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterReturnStmt) {
-	 		listener.enterReturnStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitReturnStmt) {
-	 		listener.exitReturnStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7249,16 +6898,6 @@ export class BreakStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_breakStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterBreakStmt) {
-	 		listener.enterBreakStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitBreakStmt) {
-	 		listener.exitBreakStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitBreakStmt) {
@@ -7283,16 +6922,6 @@ export class ContinueStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_continueStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterContinueStmt) {
-	 		listener.enterContinueStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitContinueStmt) {
-	 		listener.exitContinueStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7319,16 +6948,6 @@ export class GotoStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_gotoStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterGotoStmt) {
-	 		listener.enterGotoStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitGotoStmt) {
-	 		listener.exitGotoStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitGotoStmt) {
@@ -7350,16 +6969,6 @@ export class FallthroughStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_fallthroughStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterFallthroughStmt) {
-	 		listener.enterFallthroughStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitFallthroughStmt) {
-	 		listener.exitFallthroughStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7385,16 +6994,6 @@ export class DeferStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_deferStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterDeferStmt) {
-	 		listener.enterDeferStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitDeferStmt) {
-	 		listener.exitDeferStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7439,16 +7038,6 @@ export class IfStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_ifStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterIfStmt) {
-	 		listener.enterIfStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitIfStmt) {
-	 		listener.exitIfStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitIfStmt) {
@@ -7473,16 +7062,6 @@ export class SwitchStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_switchStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSwitchStmt) {
-	 		listener.enterSwitchStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSwitchStmt) {
-	 		listener.exitSwitchStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7527,16 +7106,6 @@ export class ExprSwitchStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_exprSwitchStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExprSwitchStmt) {
-	 		listener.enterExprSwitchStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExprSwitchStmt) {
-	 		listener.exitExprSwitchStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitExprSwitchStmt) {
@@ -7565,16 +7134,6 @@ export class ExprCaseClauseContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_exprCaseClause;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExprCaseClause) {
-	 		listener.enterExprCaseClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExprCaseClause) {
-	 		listener.exitExprCaseClause(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitExprCaseClause) {
@@ -7602,16 +7161,6 @@ export class ExprSwitchCaseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_exprSwitchCase;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExprSwitchCase) {
-	 		listener.enterExprSwitchCase(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExprSwitchCase) {
-	 		listener.exitExprSwitchCase(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7656,16 +7205,6 @@ export class TypeSwitchStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeSwitchStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeSwitchStmt) {
-	 		listener.enterTypeSwitchStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeSwitchStmt) {
-	 		listener.exitTypeSwitchStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeSwitchStmt) {
@@ -7706,16 +7245,6 @@ export class TypeSwitchGuardContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeSwitchGuard;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeSwitchGuard) {
-	 		listener.enterTypeSwitchGuard(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeSwitchGuard) {
-	 		listener.exitTypeSwitchGuard(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeSwitchGuard) {
@@ -7744,16 +7273,6 @@ export class TypeCaseClauseContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeCaseClause;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeCaseClause) {
-	 		listener.enterTypeCaseClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeCaseClause) {
-	 		listener.exitTypeCaseClause(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeCaseClause) {
@@ -7781,16 +7300,6 @@ export class TypeSwitchCaseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeSwitchCase;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeSwitchCase) {
-	 		listener.enterTypeSwitchCase(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeSwitchCase) {
-	 		listener.exitTypeSwitchCase(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7829,16 +7338,6 @@ export class TypeListContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeList;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeList) {
-	 		listener.enterTypeList(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeList) {
-	 		listener.exitTypeList(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeList) {
@@ -7873,16 +7372,6 @@ export class SelectStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_selectStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSelectStmt) {
-	 		listener.enterSelectStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSelectStmt) {
-	 		listener.exitSelectStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSelectStmt) {
@@ -7910,16 +7399,6 @@ export class CommClauseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_commClause;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterCommClause) {
-	 		listener.enterCommClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitCommClause) {
-	 		listener.exitCommClause(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7951,16 +7430,6 @@ export class CommCaseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_commCase;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterCommCase) {
-	 		listener.enterCommCase(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitCommCase) {
-	 		listener.exitCommCase(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -7997,16 +7466,6 @@ export class RecvStmtContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_recvStmt;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterRecvStmt) {
-	 		listener.enterRecvStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitRecvStmt) {
-	 		listener.exitRecvStmt(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitRecvStmt) {
@@ -8040,16 +7499,6 @@ export class ForStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_forStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterForStmt) {
-	 		listener.enterForStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitForStmt) {
-	 		listener.exitForStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8086,16 +7535,6 @@ export class ForClauseContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_forClause;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterForClause) {
-	 		listener.enterForClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitForClause) {
-	 		listener.exitForClause(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8134,16 +7573,6 @@ export class RangeClauseContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_rangeClause;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterRangeClause) {
-	 		listener.enterRangeClause(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitRangeClause) {
-	 		listener.exitRangeClause(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitRangeClause) {
@@ -8168,16 +7597,6 @@ export class GoStmtContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_goStmt;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterGoStmt) {
-	 		listener.enterGoStmt(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitGoStmt) {
-	 		listener.exitGoStmt(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8216,16 +7635,6 @@ export class Type_Context extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_type_;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterType_) {
-	 		listener.enterType_(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitType_) {
-	 		listener.exitType_(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitType_) {
@@ -8257,16 +7666,6 @@ export class TypeArgsContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeArgs;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeArgs) {
-	 		listener.enterTypeArgs(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeArgs) {
-	 		listener.exitTypeArgs(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeArgs) {
@@ -8291,16 +7690,6 @@ export class TypeNameContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeName;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeName) {
-	 		listener.enterTypeName(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeName) {
-	 		listener.exitTypeName(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8345,16 +7734,6 @@ export class TypeLitContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_typeLit;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeLit) {
-	 		listener.enterTypeLit(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeLit) {
-	 		listener.exitTypeLit(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitTypeLit) {
@@ -8386,16 +7765,6 @@ export class ArrayTypeContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_arrayType;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterArrayType) {
-	 		listener.enterArrayType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitArrayType) {
-	 		listener.exitArrayType(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitArrayType) {
@@ -8418,16 +7787,6 @@ export class ArrayLengthContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_arrayLength;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterArrayLength) {
-	 		listener.enterArrayLength(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitArrayLength) {
-	 		listener.exitArrayLength(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitArrayLength) {
@@ -8449,16 +7808,6 @@ export class ElementTypeContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_elementType;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterElementType) {
-	 		listener.enterElementType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitElementType) {
-	 		listener.exitElementType(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8484,16 +7833,6 @@ export class PointerTypeContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_pointerType;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterPointerType) {
-	 		listener.enterPointerType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitPointerType) {
-	 		listener.exitPointerType(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8541,16 +7880,6 @@ export class InterfaceTypeContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_interfaceType;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterInterfaceType) {
-	 		listener.enterInterfaceType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitInterfaceType) {
-	 		listener.exitInterfaceType(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitInterfaceType) {
@@ -8578,16 +7907,6 @@ export class SliceTypeContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_sliceType;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSliceType) {
-	 		listener.enterSliceType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSliceType) {
-	 		listener.exitSliceType(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8623,16 +7942,6 @@ export class MapTypeContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_mapType;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterMapType) {
-	 		listener.enterMapType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitMapType) {
-	 		listener.exitMapType(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitMapType) {
@@ -8660,16 +7969,6 @@ export class ChannelTypeContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_channelType;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterChannelType) {
-	 		listener.enterChannelType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitChannelType) {
-	 		listener.exitChannelType(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8699,16 +7998,6 @@ export class MethodSpecContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_methodSpec;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterMethodSpec) {
-	 		listener.enterMethodSpec(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitMethodSpec) {
-	 		listener.exitMethodSpec(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitMethodSpec) {
@@ -8733,16 +8022,6 @@ export class FunctionTypeContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_functionType;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterFunctionType) {
-	 		listener.enterFunctionType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitFunctionType) {
-	 		listener.exitFunctionType(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8769,16 +8048,6 @@ export class SignatureContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_signature;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSignature) {
-	 		listener.enterSignature(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSignature) {
-	 		listener.exitSignature(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSignature) {
@@ -8803,16 +8072,6 @@ export class ResultContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_result;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterResult) {
-	 		listener.enterResult(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitResult) {
-	 		listener.exitResult(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8851,16 +8110,6 @@ export class ParametersContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_parameters;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterParameters) {
-	 		listener.enterParameters(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitParameters) {
-	 		listener.exitParameters(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitParameters) {
@@ -8888,16 +8137,6 @@ export class ParameterDeclContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_parameterDecl;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterParameterDecl) {
-	 		listener.enterParameterDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitParameterDecl) {
-	 		listener.exitParameterDecl(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -8994,16 +8233,6 @@ export class ExpressionContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_expression;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterExpression) {
-	 		listener.enterExpression(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitExpression) {
-	 		listener.exitExpression(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitExpression) {
@@ -9053,16 +8282,6 @@ export class PrimaryExprContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_primaryExpr;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterPrimaryExpr) {
-	 		listener.enterPrimaryExpr(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitPrimaryExpr) {
-	 		listener.exitPrimaryExpr(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitPrimaryExpr) {
@@ -9096,16 +8315,6 @@ export class ConversionContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_conversion;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterConversion) {
-	 		listener.enterConversion(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitConversion) {
-	 		listener.exitConversion(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9144,16 +8353,6 @@ export class OperandContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_operand;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterOperand) {
-	 		listener.enterOperand(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitOperand) {
-	 		listener.exitOperand(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitOperand) {
@@ -9181,16 +8380,6 @@ export class LiteralContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_literal;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterLiteral) {
-	 		listener.enterLiteral(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitLiteral) {
-	 		listener.exitLiteral(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9222,16 +8411,6 @@ export class BasicLitContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_basicLit;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterBasicLit) {
-	 		listener.enterBasicLit(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitBasicLit) {
-	 		listener.exitBasicLit(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9270,16 +8449,6 @@ export class IntegerContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_integer;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterInteger) {
-	 		listener.enterInteger(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitInteger) {
-	 		listener.exitInteger(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitInteger) {
@@ -9301,16 +8470,6 @@ export class OperandNameContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_operandName;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterOperandName) {
-	 		listener.enterOperandName(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitOperandName) {
-	 		listener.exitOperandName(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9340,16 +8499,6 @@ export class QualifiedIdentContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_qualifiedIdent;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterQualifiedIdent) {
-	 		listener.enterQualifiedIdent(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitQualifiedIdent) {
-	 		listener.exitQualifiedIdent(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitQualifiedIdent) {
@@ -9374,16 +8523,6 @@ export class CompositeLitContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_compositeLit;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterCompositeLit) {
-	 		listener.enterCompositeLit(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitCompositeLit) {
-	 		listener.exitCompositeLit(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9434,16 +8573,6 @@ export class LiteralTypeContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_literalType;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterLiteralType) {
-	 		listener.enterLiteralType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitLiteralType) {
-	 		listener.exitLiteralType(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitLiteralType) {
@@ -9474,16 +8603,6 @@ export class LiteralValueContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_literalValue;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterLiteralValue) {
-	 		listener.enterLiteralValue(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitLiteralValue) {
-	 		listener.exitLiteralValue(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9516,16 +8635,6 @@ export class ElementListContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_elementList;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterElementList) {
-	 		listener.enterElementList(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitElementList) {
-	 		listener.exitElementList(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitElementList) {
@@ -9554,16 +8663,6 @@ export class KeyedElementContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_keyedElement;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterKeyedElement) {
-	 		listener.enterKeyedElement(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitKeyedElement) {
-	 		listener.exitKeyedElement(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitKeyedElement) {
@@ -9589,16 +8688,6 @@ export class KeyContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_key;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterKey) {
-	 		listener.enterKey(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitKey) {
-	 		listener.exitKey(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitKey) {
@@ -9623,16 +8712,6 @@ export class ElementContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_element;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterElement) {
-	 		listener.enterElement(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitElement) {
-	 		listener.exitElement(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9674,16 +8753,6 @@ export class StructTypeContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_structType;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterStructType) {
-	 		listener.enterStructType(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitStructType) {
-	 		listener.exitStructType(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitStructType) {
@@ -9716,16 +8785,6 @@ export class FieldDeclContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_fieldDecl;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterFieldDecl) {
-	 		listener.enterFieldDecl(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitFieldDecl) {
-	 		listener.exitFieldDecl(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitFieldDecl) {
@@ -9750,16 +8809,6 @@ export class String_Context extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_string_;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterString_) {
-	 		listener.enterString_(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitString_) {
-	 		listener.exitString_(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9789,16 +8838,6 @@ export class EmbeddedFieldContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_embeddedField;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterEmbeddedField) {
-	 		listener.enterEmbeddedField(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitEmbeddedField) {
-	 		listener.exitEmbeddedField(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitEmbeddedField) {
@@ -9827,16 +8866,6 @@ export class FunctionLitContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_functionLit;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterFunctionLit) {
-	 		listener.enterFunctionLit(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitFunctionLit) {
-	 		listener.exitFunctionLit(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitFunctionLit) {
@@ -9864,16 +8893,6 @@ export class IndexContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_index;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterIndex) {
-	 		listener.enterIndex(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitIndex) {
-	 		listener.exitIndex(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -9912,16 +8931,6 @@ export class Slice_Context extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_slice_;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterSlice_) {
-	 		listener.enterSlice_(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitSlice_) {
-	 		listener.exitSlice_(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitSlice_) {
@@ -9952,16 +8961,6 @@ export class TypeAssertionContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_typeAssertion;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterTypeAssertion) {
-	 		listener.enterTypeAssertion(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitTypeAssertion) {
-	 		listener.exitTypeAssertion(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
@@ -10003,16 +9002,6 @@ export class ArgumentsContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_arguments;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterArguments) {
-	 		listener.enterArguments(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitArguments) {
-	 		listener.exitArguments(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitArguments) {
@@ -10041,16 +9030,6 @@ export class MethodExprContext extends ParserRuleContext {
     public get ruleIndex(): number {
     	return GoParser.RULE_methodExpr;
 	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterMethodExpr) {
-	 		listener.enterMethodExpr(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitMethodExpr) {
-	 		listener.exitMethodExpr(this);
-		}
-	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
 		if (visitor.visitMethodExpr) {
@@ -10078,16 +9057,6 @@ export class EosContext extends ParserRuleContext {
 	}
     public get ruleIndex(): number {
     	return GoParser.RULE_eos;
-	}
-	public enterRule(listener: GoParserListener): void {
-	    if(listener.enterEos) {
-	 		listener.enterEos(this);
-		}
-	}
-	public exitRule(listener: GoParserListener): void {
-	    if(listener.exitEos) {
-	 		listener.exitEos(this);
-		}
 	}
 	// @Override
 	public accept<Result>(visitor: GoParserVisitor<Result>): Result {
