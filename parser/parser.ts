@@ -8,6 +8,8 @@ import GoParser, {
   ExpressionStmtContext,
   FunctionDeclContext,
   IdentifierListContext,
+  LiteralContext,
+  OperandContext,
   ParameterDeclContext,
   ParametersContext,
   PrimaryExprContext,
@@ -31,6 +33,8 @@ import {
   GoNodeBase,
   Identifier,
   IdentifierList,
+  Literal,
+  Operand,
   ParameterDecl,
   Parameters,
   Position,
@@ -156,6 +160,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
+    console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -267,12 +272,14 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    // console.log(ctx.getText(), ctx);
-    if (ctx.operand() != null) {
+    console.log(ctx.getText());
+    if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
         name: ctx.operand().getText(),
       };
+    } else if (ctx.operand() != null) {
+      return this.visitOperand(ctx.operand());
     }
     throw new Error("Not implemented");
   };
@@ -363,4 +370,22 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       specs: [],
     };
   };
+
+  visitOperand = (ctx: OperandContext): Operand => {
+    if (ctx.literal() != null) {
+      return this.visitLiteral(ctx.literal());
+    } else if (ctx.L_PAREN && ctx.R_PAREN) {
+      return this.visitExpression(ctx.expression());
+    }
+  }
+
+  visitLiteral = (ctx: LiteralContext): Literal => {
+    if (ctx.basicLit() != null) {
+      return {
+        // TODO: do for other types
+        type: "IntegerLiteral",
+        value: parseInt(ctx.basicLit().getText()),
+      };
+    }
+  }
 }

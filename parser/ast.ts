@@ -116,8 +116,11 @@ export interface VarSpec extends GoNodeBase {
 // TODO: add function call
 export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal;
 
+
 // TODO: add CompositeLiteral (slice, struct, map, etc) | FunctionLiteral (lambda functions, i.e. add := func(a, b int) int {})
-type Literal = BasicLiteral;
+export type Literal = BasicLiteral;
+
+export type Operand = Literal | Identifier | Expression;
 
 export type BasicLiteral =
   | NilLiteral
