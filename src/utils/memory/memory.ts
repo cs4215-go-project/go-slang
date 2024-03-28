@@ -32,7 +32,6 @@ enum Tag {
     True,
     False,
     Int, // 64-bit signed integer
-    Float, // 64-bit float
     String,
 }
 
@@ -42,8 +41,8 @@ enum MarkedStatus {
 }
 
 export default class Memory {
-    data: ArrayBuffer;
-    view: DataView;
+    private data: ArrayBuffer;
+    private view: DataView;
     public free_index: number;    
     
     constructor(num_words: number) {
@@ -154,18 +153,7 @@ export default class Memory {
 
     get_int(index: number): number {
         return this.get_child(index, 0);
-    }
-
-    // allocate float
-    allocate_float(value: number): number {
-        const node_index: number = this.allocate_node(Tag.Float, 1);
-        this.set_child(node_index, 0, value);
-        return node_index;
-    }
-
-    get_float(index: number): number {
-        return this.get_child(index, 0);
-    }    
+    }   
 }
 
 // test Memory
@@ -182,9 +170,3 @@ console.log(mem.get_tag(int_index)); // Tag.Int
 console.log(mem.get_num_children(int_index)); // 1
 console.log(mem.get_marked(int_index)); // MarkedStatus.Unmarked
 console.log(mem.get_int(int_index)); // 42
-
-const float_index: number = mem.allocate_float(3.14);
-console.log(mem.get_tag(float_index)); // Tag.Float
-console.log(mem.get_num_children(float_index)); // 1
-console.log(mem.get_marked(float_index)); // MarkedStatus.Unmarked
-console.log(mem.get_float(float_index)); // 3.14
