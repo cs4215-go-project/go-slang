@@ -40,6 +40,7 @@ import {
   SourceLevelDeclaration,
   Statement,
   StatementList,
+  UnaryOperator,
   VarDecl,
   VarSpec,
 } from "./ast";
@@ -155,6 +156,18 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
+    if (ctx == null) {
+      throw new Error("Expression is null");
+    }
+
+    if (ctx.expression_list().length == 1) {
+      return {
+        type: "UnaryExpr",
+        operator: (ctx._unary_op.text as UnaryOperator),
+        expr: this.visitExpression(ctx.expression(0)),
+      };
+    }
+
     if (ctx.PLUS() != null) {
       return {
         type: "BinaryOperationExpr",
@@ -254,6 +267,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
+    // console.log(ctx.getText(), ctx);
     if (ctx.operand() != null) {
       return {
         type: "Identifier",
