@@ -1,5 +1,3 @@
-import GoLexer from "./gen/GoLexer"
-
 interface Point {
   line: number;
   offset: number;
@@ -12,143 +10,162 @@ export interface Position {
 }
 
 export interface GoNodeBase {
-    type: string;
-    position: Position;
+  type: string;
+//   position: Position;
 }
 
 export interface SourceFile extends GoNodeBase {
-    type: 'SourceFile';
-    declarations: Declaration[];
+  type: "SourceFile";
+  declarations: SourceLevelDeclaration[];
 }
 
+export type SourceLevelDeclaration = FunctionDecl | Declaration;
+
 export interface FunctionDecl extends GoNodeBase {
-    type: 'FunctionDecl';
-    name: string;
-    // we don't support generics
-    // typeParameters: TypeParameter[];
-    signature: Signature;
-    body: Block;
+  type: "FunctionDecl";
+  name: string;
+  // we don't support generics
+  // typeParameters: TypeParameter[];
+  signature: Signature;
+  body: Block;
 }
 
 // TODO: Add proper typing
 export type DataType = string;
 
 export interface Signature extends GoNodeBase {
-    type: 'Signature';
-    parameters: Parameters;
-    result?: Result;
+  type: "Signature";
+  parameters: Parameters;
+  result?: Result;
 }
 
 export interface ParameterDecl extends GoNodeBase {
-    type: 'ParameterDecl';
-    identifiers: string[];
-    isVariadic: boolean;
-    dataType: DataType;
+  type: "ParameterDecl";
+  identifierList: IdentifierList;
+  isVariadic: boolean;
+  dataType: DataType;
 }
 
 export interface Parameters extends GoNodeBase {
-    type: 'Parameters';
-    parameterDecls: ParameterDecl[];
+  type: "Parameters";
+  parameterDecls: ParameterDecl[];
+}
+
+export interface IdentifierList extends GoNodeBase {
+    type: "IdentifierList";
+    identifiers: string[];
 }
 
 export interface Result extends GoNodeBase {
-    type: 'Result';
-    // Go allows multiple return values
-    dataTypes: DataType[];
+  type: "Result";
+  // Go allows multiple return values
+  dataTypes: DataType[];
 }
 
 export interface Block extends GoNodeBase {
-    type: 'Block';
-    statements: Statement[];
+  type: "Block";
+  statementList: StatementList;
 }
 
-export type Statement =
-    | Block
-    | Declaration
-    | SimpleStatement
+export interface StatementList extends GoNodeBase {
+  type: "StatementList";
+  statements: Statement[];
+}
+
+export type Statement = Declaration | SimpleStatement;
 
 // TODO: add sendStmt, assignment, expressionStmt, shortVarDecl
-export type SimpleStatement = IncDecStatement
+export type SimpleStatement = IncDecStatement | ExpressionStatement ;
 
 export interface IncDecStatement extends GoNodeBase {
-    type: 'IncDecStatement';
-    identifier: string;
-    operator: '++' | '--';
+  type: "IncDecStatement";
+  identifier: string;
+  operator: "++" | "--";
 }
+
+export interface ExpressionStatement extends GoNodeBase {
+    type: "ExpressionStatement";
+    expression: Expression;
+    }
 
 export type Declaration = ConstDecl | TypeDecl | VarDecl;
 
 export interface ConstDecl extends GoNodeBase {
-    type: 'ConstDecl';
-    specs: ConstSpec[]; // Assuming multiple constSpecs can be grouped within parentheses
+  type: "ConstDecl";
+  specs: ConstSpec[];
 }
 
 export interface ConstSpec extends GoNodeBase {
-    type: 'ConstSpec';
-    identifiers: string[];
-    dataType?: DataType;
-    values?: Expression[];
+  type: "ConstSpec";
+  identifierList: IdentifierList;
+  dataType?: DataType;
+  values?: Expression[];
 }
 
 export interface VarDecl extends GoNodeBase {
-    type: 'VarDecl';
-    specs: VarSpec[];
+  type: "VarDecl";
+  specs: VarSpec[];
 }
 
 export interface VarSpec extends GoNodeBase {
-    identifiers: string[];
-    dataType?: DataType;
-    values?: Expression[];
+  identifierList: IdentifierList;
+  dataType?: DataType;
+  values?: Expression[];
 }
 
 // TODO: add function call
 export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal;
 
 // TODO: add CompositeLiteral (slice, struct, map, etc) | FunctionLiteral (lambda functions, i.e. add := func(a, b int) int {})
-type Literal = BasicLiteral
+type Literal = BasicLiteral;
 
-export type BasicLiteral = NilLiteral | IntegerLiteral | FloatLiteral | StringLiteral | BooleanLiteral
+export type BasicLiteral =
+  | NilLiteral
+  | IntegerLiteral
+  | FloatLiteral
+  | StringLiteral
+  | BooleanLiteral;
 
 export interface NilLiteral extends GoNodeBase {
-    type: 'NilLiteral';
+  type: "NilLiteral";
 }
 
 export interface IntegerLiteral extends GoNodeBase {
-    type: 'IntegerLiteral';
-    value: number;
+  type: "IntegerLiteral";
+  value: number;
 }
 
 export interface FloatLiteral extends GoNodeBase {
-    type: 'FloatLiteral';
-    value: number;
+  type: "FloatLiteral";
+  value: number;
 }
 
 export interface StringLiteral extends GoNodeBase {
-    type: 'StringLiteral';
-    value: string;
+  type: "StringLiteral";
+  value: string;
 }
 
 export interface BooleanLiteral extends GoNodeBase {
-    type: 'BooleanLiteral';
-    value: boolean;
+  type: "BooleanLiteral";
+  value: boolean;
 }
 
 export interface Identifier extends GoNodeBase {
-    type: 'Identifier';
-    name: string;
+  type: "Identifier";
+  name: string;
 }
 
 export interface UnaryExpr extends GoNodeBase {
-    type: 'UnaryExpr';
-    operator: UnaryOperator;
-    expr: Expression;
+  type: "UnaryExpr";
+  operator: UnaryOperator;
+  expr: Expression;
 }
 
 export interface BinaryExpr extends GoNodeBase {
-    type: 'BinaryOperationExpr';
-    operator: BinaryOperator;
-    left: Expression;
-    right: Expression;
+  type: "BinaryOperationExpr";
+  operator: BinaryOperator;
+  left: Expression;
+  right: Expression;
 }
 
 export type RelationalOperator = "<" | "<=" | "!=" | "==" | ">=" | ">";
@@ -168,13 +185,11 @@ export type ScalarDataType = PrimaryDataType | PointerDataType;
 export type PointerDataType = "pointer";
 export type PrimaryDataType = IntegerDataType | FloatDataType;
 export type IntegerDataType = SignedIntegerType | UnsignedIntegerType;
-export type UnsignedIntegerType = "uint" // TODO: add more
-export type SignedIntegerType = "int" // TODO: add more
-export type FloatDataType = "float"
+export type UnsignedIntegerType = "uint"; // TODO: add more
+export type SignedIntegerType = "int"; // TODO: add more
+export type FloatDataType = "float";
 
 // TODO
 export interface TypeDecl extends GoNodeBase {
-    type: 'TypeDecl';
+  type: "TypeDecl";
 }
-
-
