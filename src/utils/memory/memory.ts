@@ -43,7 +43,8 @@ enum MarkedStatus {
 export default class Memory {
     private data: ArrayBuffer;
     private view: DataView;
-    public free_index: number;    
+    public free_index: number;
+    public literals: [number, number, number, number];    
     
     constructor(num_words: number) {
         // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
@@ -55,6 +56,7 @@ export default class Memory {
         this.data = new ArrayBuffer(num_words * WORD_SIZE);
         this.view = new DataView(this.data);
         this.free_index = 0;
+        this.literals = [0, 0, 0, 0];
 
         // initialize free list
         for (let i = 0; i < num_words; i += NODE_SIZE) {
@@ -135,13 +137,23 @@ export default class Memory {
     }
 
     // allocate literal values
-    allocate_literals(): [number, number, number, number] {
+    allocate_literals(): void {
         const nil_index: number = this.allocate_node(Tag.Nil, 0);
         const unassigned_index: number = this.allocate_node(Tag.Unassigned, 0);
         const true_index: number = this.allocate_node(Tag.True, 0);
         const false_index: number = this.allocate_node(Tag.False, 0);
 
-        return [nil_index, unassigned_index, true_index, false_index];
+        this.literals = [nil_index, unassigned_index, true_index, false_index];
+    }
+
+    // allocate builtin functions: make, println, etc
+    allocate_builtins(): void {
+        // TODO
+    }
+
+    // allocate global declarations
+    allocate_globals(): void {
+        // TODO
     }
 
     // allocate int
@@ -153,19 +165,59 @@ export default class Memory {
 
     get_int(index: number): number {
         return this.get_child(index, 0);
-    }   
+    }
+
+    
+    /*
+     * Boxing and unboxing functions
+     */
+
+    // allocates an object in memory
+    box(obj: any): number {
+        if (typeof obj === "boolean") {
+            return obj ? this.literals[Tag.True] : this.literals[Tag.False];
+        } else if (obj === null) {
+            return this.literals[Tag.Nil];
+        } else if (obj === undefined) {
+            return this.literals[Tag.Unassigned];
+        } else if (typeof obj === "number") {
+            return this.allocate_int(obj);
+        }
+        throw new Error("Unsupported type");
+    }
+
+    // given an address, first interprets the tag, then unboxes and returns the value
+    unbox(index: number): any {
+        const tag: Tag = this.get_tag(index);
+        switch (tag) {
+            case Tag.Nil:
+                return null;
+            case Tag.Unassigned:
+                return undefined;
+            case Tag.True:
+                return true;
+            case Tag.False:
+                return false;
+            case Tag.Int:
+                return this.get_int(index);
+            default:
+                throw new Error("Unsupported type");
+        }
+    }
 }
 
 // test Memory
 const mem: Memory = new Memory(256);
 
-const [nil_index, unassigned_index, true_index, false_index] = mem.allocate_literals();
-console.log(mem.get_tag(nil_index)); // Tag.Nil
-console.log(mem.get_tag(unassigned_index)); // Tag.Unassigned
-console.log(mem.get_tag(true_index)); // Tag.True
-console.log(mem.get_tag(false_index)); // Tag.False
+mem.allocate_literals();
+console.log(mem.literals[0]); // 0
+console.log(mem.literals[1]); // 16
+console.log(mem.literals[2]); // 32
+console.log(mem.literals[3]); // 48
+
 
 const int_index: number = mem.allocate_int(42);
+console.log(int_index); // 64
 console.log(mem.get_tag(int_index)); // Tag.Int
 console.log(mem.get_num_children(int_index)); // 1
 console.log(mem.get_marked(int_index)); // MarkedStatus.Unmarked
