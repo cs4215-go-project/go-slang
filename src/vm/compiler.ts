@@ -1,5 +1,5 @@
 type CompileTimeEnvironment = string[][];
-type Program = {
+export type Program = {
     type: "SourceFile";
     [key: string]: any;
 }
