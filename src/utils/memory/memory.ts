@@ -14,8 +14,8 @@
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
-const WORD_SIZE: number = 8; // bytes
-const NODE_SIZE: number = 16; // words
+export const WORD_SIZE: number = 8; // bytes
+export const NODE_SIZE: number = 16; // words
 
 // unused node offsets (none for now)
 const NEXT_NODE_OFFSET: number = 0;
@@ -26,7 +26,7 @@ const NUM_CHILDREN_OFFSET: number = 1;
 const MARKED_OFFSET: number = 2;
 
 // Golang type tags
-enum Tag {
+export enum Tag {
     Nil,
     Unassigned,
     True,
@@ -35,7 +35,7 @@ enum Tag {
     String,
 }
 
-enum MarkedStatus {
+export enum MarkedStatus {
     Unmarked,
     Marked,
 }
@@ -172,7 +172,7 @@ export default class Memory {
      * Boxing and unboxing functions
      */
 
-    // allocates an object in memory
+    // allocates an object in memory and returns its address
     box(obj: any): number {
         if (typeof obj === "boolean") {
             return obj ? this.literals[Tag.True] : this.literals[Tag.False];
@@ -205,20 +205,3 @@ export default class Memory {
         }
     }
 }
-
-// test Memory
-const mem: Memory = new Memory(256);
-
-mem.allocate_literals();
-console.log(mem.literals[0]); // 0
-console.log(mem.literals[1]); // 16
-console.log(mem.literals[2]); // 32
-console.log(mem.literals[3]); // 48
-
-
-const int_index: number = mem.allocate_int(42);
-console.log(int_index); // 64
-console.log(mem.get_tag(int_index)); // Tag.Int
-console.log(mem.get_num_children(int_index)); // 1
-console.log(mem.get_marked(int_index)); // MarkedStatus.Unmarked
-console.log(mem.get_int(int_index)); // 42
