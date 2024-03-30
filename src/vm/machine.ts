@@ -5,16 +5,17 @@ export type Literal = number | boolean;
 
 export default class Machine {
     private memory: Memory;
-    private compiler: Compiler;
-    private program: Program;
+    public compiler: Compiler;
+    public program: Program;
     private pc: number;
     private op_stack: number[];
     private env: string[][];
     private runtime_stack: number[];
 
-    constructor(num_words: number, program: Program) {
+    constructor(num_words: number, compiler: Compiler, program: Program) {
         this.memory = new Memory(num_words);
-        this.compiler = new Compiler(program);
+        this.compiler = compiler;
+        this.program = program;
         this.pc = 0;
         this.op_stack = [];
         this.env = [];
@@ -33,10 +34,10 @@ export default class Machine {
 
         let instr = this.compiler.instrs[this.pc];
         while (instr.opcode !== "DONE") {
-            instr = this.compiler.instrs[this.pc++];
             this.execute(instr);
+            instr = this.compiler.instrs[this.pc++];
         }
-        
+
         const program_result_addr = this.op_stack.pop();
         return this.memory.unbox(program_result_addr);
     }
@@ -46,7 +47,6 @@ export default class Machine {
             case "LDC": {
                 const addr = this.memory.box(instr.value);
                 this.op_stack.push(addr);
-                this.pc++;
                 break;
             }
             case "BINOP": {
@@ -60,7 +60,6 @@ export default class Machine {
                 const result_addr = this.memory.box(result);
 
                 this.op_stack.push(result_addr);
-                this.pc++;
                 break;
             }
             case "UNOP": {
@@ -71,11 +70,30 @@ export default class Machine {
                 const result_addr = this.memory.box(result);
 
                 this.op_stack.push(result_addr);
-                this.pc++;
+                break;
+            }
+            case "JOF": {
+                const addr = this.op_stack.pop();
+                const condition = this.memory.unbox(addr);
+
+                if (!condition) {
+                    this.pc = instr.target_instr;
+                }
+                break;
+            }
+            case "GOTO": {
+                this.pc = instr.target_instr;
+                break;
+            }
+            case "POP": {
+                this.op_stack.pop();
+                break;
+            }
+            case "RESET": {
+                this.env.pop();
                 break;
             }
             case "DONE": {
-                this.pc++;
                 break;
             }
             default:
@@ -85,19 +103,19 @@ export default class Machine {
 
     execute_binop(op: string, left: Literal, right: Literal): Literal {
         switch (op) {
-            case "+": return (left as number) + (right as number);
-            case "-": return (left as number) - (right as number);
-            case "*": return (left as number) * (right as number);
-            case "/": return (left as number) / (right as number);
-            case "%": return (left as number) % (right as number);
-            case "<": return left < right;
-            case "<=": return left <= right;
-            case "==": return left === right;
-            case "!=": return left !== right;
-            case ">=": return left >= right;
-            case ">": return left > right;
-            case "&&": return left && right;
-            case "||": return left || right;
+            case "+": return  (left as number) + (right as number);
+            case "-": return  (left as number) - (right as number);
+            case "*": return  (left as number) * (right as number);
+            case "/": return  Math.floor((left as number) / (right as number));
+            case "%": return  (left as number) % (right as number);
+            case "<": return  (left as number) < (right as number);
+            case "<=": return (left as number) <= (right as number);
+            case "==": return (left as number) === (right as number);
+            case "!=": return (left as number) !== (right as number);
+            case ">=": return (left as number) >= (right as number);
+            case ">": return  (left as number) > (right as number);
+            case "&&": return (left as boolean) && (right as boolean);
+            case "||": return (left as boolean) || (right as boolean);
             default:
                 throw new Error("Unknown binary operator: " + op);
         }
