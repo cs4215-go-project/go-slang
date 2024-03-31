@@ -14,6 +14,8 @@
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
+import { BuiltinMetadata } from "../../vm/machine";
+
 export const WORD_SIZE: number = 8; // bytes
 export const NODE_SIZE: number = 16; // words
 
@@ -32,7 +34,10 @@ export enum Tag {
     True,
     False,
     Int, // 64-bit signed integer
-    String,
+    Builtin,
+    Frame,
+    Callframe,
+    Blockframe
 }
 
 export enum MarkedStatus {
@@ -123,7 +128,7 @@ export default class Memory {
     // allocates node metadata, called prior to allocating payload/children
     allocate_node(tag: Tag, num_children: number): number {
         if (this.free_index === -1) {
-            throw new Error("Out of memory");
+            throw new Error("Out of memory"); // TODO: garbage collection
         }
 
         const node_index: number = this.free_index;
@@ -146,9 +151,28 @@ export default class Memory {
         this.literals = [nil_index, unassigned_index, true_index, false_index];
     }
 
+    allocate_frame(num_children: number): number {
+        return this.allocate_node(Tag.Frame, num_children + 1); // TODO: do we need to add 1?
+    }
+
     // allocate builtin functions: make, println, etc
-    allocate_builtins(): void {
-        // TODO
+    allocate_builtins(builtins_metadata: BuiltinMetadata): void {
+        const values: any = Object.values(builtins_metadata);
+        const mainframe_addr: number = this.allocate_frame(values.length);
+
+        for (let i = 0; i < values.length; i++) {
+            const builtin_id: number = values[i].id;
+            const arity: number = values[i].arity;
+            const builtin_addr = this.allocate_builtin(builtin_id, arity);
+            this.set_child(mainframe_addr, i, builtin_addr);
+        }
+    }
+
+    allocate_builtin(builtin_id: number, arity: number): number {
+        const addr: number = this.allocate_node(Tag.Builtin, 2);
+        this.set_child(addr, 0, builtin_id);
+        this.set_child(addr, 1, arity);
+        return addr;
     }
 
     // allocate global declarations
