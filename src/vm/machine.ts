@@ -1,13 +1,12 @@
 import Memory, { Tag } from "../utils/memory/memory";
-import Compiler, { Instruction, Program } from "./compiler";
+import {Instruction} from "./compiler";
 
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 
 export default class Machine {
     
-    public compiler: Compiler;
-    public program: Program;
+    public instructions: Instruction[];
 
     // for printing output to frontend (React's setState)
     public setOutput: (output: any) => void;
@@ -24,9 +23,8 @@ export default class Machine {
     private env: string[][];
     private runtime_stack: number[];
 
-    constructor(num_words: number, compiler: Compiler, setOutput: (output: any) => void, program: Program) {
-        this.compiler = compiler;
-        this.program = program;
+    constructor(num_words: number, instructions: Instruction[], setOutput: (output: any) => void) {
+        this.instructions = instructions;
 
         this.setOutput = setOutput;
         this.programOutput = [];
@@ -47,12 +45,10 @@ export default class Machine {
     }
 
     run(): any {
-        this.compiler.compile(this.program);
-
-        let instr = this.compiler.instrs[this.pc];
+        let instr = this.instructions[this.pc];
         while (instr.opcode !== "DONE") {
             this.execute(instr);
-            instr = this.compiler.instrs[this.pc++];
+            instr = this.instructions[this.pc++];
         }
 
         const program_result_addr = this.op_stack.pop();

@@ -86,7 +86,7 @@ export interface IncDecStatement extends GoNodeBase {
 export interface ExpressionStatement extends GoNodeBase {
     type: "ExpressionStatement";
     expression: Expression;
-    }
+}
 
 export type Declaration = ConstDecl | TypeDecl | VarDecl;
 
@@ -165,7 +165,7 @@ export interface UnaryExpr extends GoNodeBase {
 }
 
 export interface BinaryExpr extends GoNodeBase {
-  type: "BinaryOperationExpr";
+  type: "BinaryExpr";
   operator: BinaryOperator;
   left: Expression;
   right: Expression;
