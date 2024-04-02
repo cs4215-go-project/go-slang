@@ -18,9 +18,9 @@ describe("fundamental Memory methods", () => {
         expect(memory.get_tag(0)).toBe(Tag.Nil);
     });
 
-    test("set_num_children and get_num_children", () => {
-        memory.set_num_children(0, 2);
-        expect(memory.get_num_children(0)).toBe(2);
+    test("set_size and get_size", () => {
+        memory.set_size(0, 2);
+        expect(memory.get_size(0)).toBe(2);
     });
 
     test("set_marked and get_marked", () => {
@@ -69,7 +69,7 @@ describe ("allocate integer", () => {
 
         // check the node metadata
         expect(memory.get_tag(addr)).toBe(Tag.Int);
-        expect(memory.get_num_children(addr)).toBe(1);
+        expect(memory.get_size(addr)).toBe(2);
         expect(memory.get_marked(addr)).toBe(MarkedStatus.Unmarked);
 
         // check the payload

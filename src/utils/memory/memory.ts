@@ -10,7 +10,7 @@
  * all 8 bytes used to store next node index
  *       
  * Used node:
- * [tag, numChildren, marked][...payload/children]
+ * [tag, size, marked][...payload/children]
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
@@ -24,7 +24,7 @@ const NEXT_NODE_OFFSET: number = 0;
 
 // used node offsets
 const TAG_OFFSET: number = 0;
-const NUM_CHILDREN_OFFSET: number = 1;
+const SIZE_OFFSET: number = 1;
 const MARKED_OFFSET: number = 2;
 
 // Golang type tags
@@ -94,13 +94,13 @@ export default class Memory {
         return this.view.getUint8(index * WORD_SIZE + TAG_OFFSET) as Tag;
     }
 
-    // set and get a used node's number of children; index is word index
-    set_num_children(index: number, num_children: number): void {
-        this.view.setUint8(index * WORD_SIZE + NUM_CHILDREN_OFFSET, num_children);
+    // set and get a used node's size; index is word index
+    set_size(index: number, size: number): void {
+        this.view.setUint8(index * WORD_SIZE + SIZE_OFFSET, size);
     }
 
-    get_num_children(index: number): number {
-        return this.view.getUint8(index * WORD_SIZE + NUM_CHILDREN_OFFSET);
+    get_size(index: number): number {
+        return this.view.getUint8(index * WORD_SIZE + SIZE_OFFSET);
     }
 
     // set and get a used node's marked flag; index is word index
@@ -126,7 +126,7 @@ export default class Memory {
      */
 
     // allocates node metadata, called prior to allocating payload/children
-    allocate_node(tag: Tag, num_children: number): number {
+    allocate_node(tag: Tag, size: number): number {
         if (this.free_index === -1) {
             throw new Error("Out of memory"); // TODO: garbage collection
         }
@@ -135,7 +135,7 @@ export default class Memory {
         this.free_index = this.get_word(node_index);
 
         this.set_tag(node_index, tag);
-        this.set_num_children(node_index, num_children);
+        this.set_size(node_index, size);
         this.set_marked(node_index, 0);
 
         return node_index;
@@ -143,20 +143,20 @@ export default class Memory {
 
     // allocate literal values
     allocate_literals(): void {
-        const nil_index: number = this.allocate_node(Tag.Nil, 0);
-        const unassigned_index: number = this.allocate_node(Tag.Unassigned, 0);
-        const true_index: number = this.allocate_node(Tag.True, 0);
-        const false_index: number = this.allocate_node(Tag.False, 0);
+        const nil_index: number = this.allocate_node(Tag.Nil, 1);
+        const unassigned_index: number = this.allocate_node(Tag.Unassigned, 1);
+        const true_index: number = this.allocate_node(Tag.True, 1);
+        const false_index: number = this.allocate_node(Tag.False, 1);
 
         this.literals = [nil_index, unassigned_index, true_index, false_index];
     }
 
     allocate_frame(num_children: number): number {
-        return this.allocate_node(Tag.Frame, num_children + 1); // TODO: do we need to add 1?
+        return this.allocate_node(Tag.Frame, num_children + 1);
     }
 
     // allocate builtin functions: make, println, etc
-    allocate_builtins(builtins_metadata: BuiltinMetadata): void {
+    allocate_builtins(builtins_metadata: BuiltinMetadata): number {
         const values: any = Object.values(builtins_metadata);
         const mainframe_addr: number = this.allocate_frame(values.length);
 
@@ -166,10 +166,12 @@ export default class Memory {
             const builtin_addr = this.allocate_builtin(builtin_id, arity);
             this.set_child(mainframe_addr, i, builtin_addr);
         }
+
+        return mainframe_addr;
     }
 
     allocate_builtin(builtin_id: number, arity: number): number {
-        const addr: number = this.allocate_node(Tag.Builtin, 2);
+        const addr: number = this.allocate_node(Tag.Builtin, 3);
         this.set_child(addr, 0, builtin_id);
         this.set_child(addr, 1, arity);
         return addr;
@@ -182,7 +184,7 @@ export default class Memory {
 
     // allocate int
     allocate_int(value: number): number {
-        const node_index: number = this.allocate_node(Tag.Int, 1);
+        const node_index: number = this.allocate_node(Tag.Int, 2);
         this.set_child(node_index, 0, value);
         return node_index;
     }
