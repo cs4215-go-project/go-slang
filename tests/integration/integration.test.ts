@@ -1,7 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import parse from "../../parser/parser";
-import Machine from "../../src/vm/machine";
-import { compile, Instruction } from '../../src/vm/compiler';
+import parseCompileAndRun from "../../src/vm/machine";
 
 const setOutputStub = (output: any) => {};
 
@@ -15,8 +13,7 @@ func main() {
 }
         `
 
-        const machine = new Machine(256, compile(parse(input)), setOutputStub);
-        const result = machine.run()
+        const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(51);
     })
 
@@ -29,8 +26,7 @@ func main() {
 }
         `
 
-        const machine = new Machine(256, compile(parse(input)), setOutputStub);
-        const result = machine.run()
+        const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(-10);
     })
 })
