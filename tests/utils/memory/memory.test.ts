@@ -34,7 +34,7 @@ describe("fundamental Memory methods", () => {
     });
 
     test("allocate_node", () => {
-        expect(memory.allocate_node(Tag.Nil, 0)).toBe(0);
+        expect(memory.allocate_node(Tag.Nil, 1)).toBe(0);
     });
 });
 

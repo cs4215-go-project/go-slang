@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import Machine from '../../src/vm/machine';
+import { Machine } from '../../src/vm/machine';
 import { Instruction } from '../../src/vm/compiler';
 
 const setOutputStub = (output: any) => {};
@@ -16,7 +16,7 @@ describe("binary expression", () => {
 
     test("addition", () => {
         const instructions = simpleBinInstructions("+", 420, 643);
-        const machine = new Machine(256, instructions, setOutputStub);
+        const machine = new Machine(512, instructions, setOutputStub);
 
         expect(machine.run()).toBe(1063);
     });
@@ -132,7 +132,7 @@ describe("more complex expressions", () => {
             { opcode: "BINOP", operator: "+" },
             { opcode: "DONE" },
         ];
-        const machine = new Machine(256, instructions, setOutputStub);
+        const machine = new Machine(512, instructions, setOutputStub);
 
         expect(machine.run()).toBe(10);
     });
@@ -147,7 +147,7 @@ describe("more complex expressions", () => {
             { opcode: "BINOP", operator: "*" },
             { opcode: "DONE" },
         ];
-        const machine = new Machine(256, instructions, setOutputStub);
+        const machine = new Machine(512, instructions, setOutputStub);
         expect(machine.run()).toBe(14);
     });
 
