@@ -162,7 +162,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -274,7 +274,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
@@ -346,10 +346,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   //  we ignore typeDecl
   visitDeclaration = (ctx: DeclarationContext): Declaration => {
     if (ctx.constDecl() != null) {
-      console.log("constDecl");
+      // console.log("constDecl");
       return this.visitConstDecl(ctx.constDecl());
     } else if (ctx.varDecl() != null) {
-      console.log("varDecl");
+      // console.log("varDecl");
       return this.visitVarDecl(ctx.varDecl());
     }
     throw new Error("Not implemented");
@@ -388,7 +388,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   }
 
   visitBasicLit = (ctx: BasicLitContext): BasicLiteral => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx.integer() != null) {
       return {
         type: "IntegerLiteral",
@@ -405,7 +405,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         value: true,
       };
     } else if (ctx.FALSE_LIT() != null) {
-      console.log("here")
       return {
         type: "BooleanLiteral",
         value: false,
