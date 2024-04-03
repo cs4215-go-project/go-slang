@@ -4,8 +4,10 @@ import GoParser, {
   BasicLitContext,
   BlockContext,
   ConstDeclContext,
+  ConstSpecContext,
   DeclarationContext,
   ExpressionContext,
+  ExpressionListContext,
   ExpressionStmtContext,
   FunctionDeclContext,
   IdentifierListContext,
@@ -21,6 +23,7 @@ import GoParser, {
   StatementContext,
   StatementListContext,
   VarDeclContext,
+  VarSpecContext,
 } from "./gen/GoParser";
 import GoParserVisitor from "./gen/GoParserVisitor";
 import {
@@ -30,6 +33,7 @@ import {
   ConstSpec,
   Declaration,
   Expression,
+  ExpressionList,
   ExpressionStatement,
   FunctionDecl,
   GoNodeBase,
@@ -346,10 +350,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   //  we ignore typeDecl
   visitDeclaration = (ctx: DeclarationContext): Declaration => {
     if (ctx.constDecl() != null) {
-      // console.log("constDecl");
+      console.log("constDecl");
       return this.visitConstDecl(ctx.constDecl());
     } else if (ctx.varDecl() != null) {
-      // console.log("varDecl");
+      console.log("varDecl");
       return this.visitVarDecl(ctx.varDecl());
     }
     throw new Error("Not implemented");
@@ -357,6 +361,13 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   visitConstDecl = (ctx: ConstDeclContext): ConstDecl => {
     const specs: ConstSpec[] = [];
+    for (const spec of ctx.constSpec_list()) {
+      const constSpec =this.visitConstSpec(spec)
+      if (constSpec.identifierList.identifiers.length > constSpec.expressionList.expressions.length) {
+        throw new Error("missing init expr for const decl");
+      }
+      specs.push(constSpec);
+    }
     return {
       type: "ConstDecl",
       //   position: getPosition(ctx),
@@ -364,20 +375,63 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     };
   };
 
+  visitConstSpec = (ctx: ConstSpecContext): ConstSpec => {
+    return {
+      type: "ConstSpec",
+      //   position: getPosition(ctx),
+      identifierList: this.visitIdentifierList(ctx.identifierList()),
+      dataType: ctx.type_()?.getText(),
+      expressionList: this.visitExpressionList(ctx.expressionList()),
+    };
+  }
+
+  visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
+    const expressions: Expression[] = [];
+    for (const expr of ctx.expression_list()) {
+      expressions.push(this.visitExpression(expr));
+    }
+    return {
+      type: "ExpressionList",
+      //   position: getPosition(ctx),
+      expressions: expressions,
+    }
+  }
+
   visitVarDecl = (ctx: VarDeclContext): VarDecl => {
     const specs: VarSpec[] = [];
+    for (const spec of ctx.varSpec_list()) {
+      const varSpec =this.visitVarSpec(spec)
+      specs.push(varSpec);
+    }
+
     return {
       type: "VarDecl",
       //   position: getPosition(ctx),
-      specs: [],
+      specs: specs,
     };
   };
 
+  visitVarSpec = (ctx: VarSpecContext): VarSpec => {
+    return {
+      type: "VarSpec",
+      //   position: getPosition(ctx),
+      identifierList: this.visitIdentifierList(ctx.identifierList()),
+      dataType: ctx.type_()?.getText(),
+      expressionList: this.visitExpressionList(ctx.expressionList()),
+    };
+  }
+
+
   visitOperand = (ctx: OperandContext): Operand => {
-    if (ctx.literal() != null) {
+    if (ctx.literal() !== null) {
       return this.visitLiteral(ctx.literal());
-    } else if (ctx.L_PAREN && ctx.R_PAREN) {
+    } else if (ctx.L_PAREN() !== null && ctx.R_PAREN !== null) {
       return this.visitExpression(ctx.expression());
+    } else if (ctx.operandName() != null) {
+      return {
+        type: "Identifier",
+        name: ctx.operandName().getText(),
+      };
     }
   }
 
