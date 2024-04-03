@@ -1,6 +1,7 @@
 import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4";
 import GoLexer from "./gen/GoLexer";
 import GoParser, {
+  BasicLitContext,
   BlockContext,
   ConstDeclContext,
   DeclarationContext,
@@ -23,6 +24,7 @@ import GoParser, {
 } from "./gen/GoParser";
 import GoParserVisitor from "./gen/GoParserVisitor";
 import {
+  BasicLiteral,
   Block,
   ConstDecl,
   ConstSpec,
@@ -49,14 +51,14 @@ import {
   VarSpec,
 } from "./ast";
 
-export default function parse(input: string) {
+export default function parse(input: string): SourceFile {
   const chars = CharStreams.fromString(input);
   const lexer = new GoLexer(chars);
   const tokens = new CommonTokenStream(lexer);
   const parser = new GoParser(tokens);
   const tree = parser.sourceFile();
 
-  return tree.accept(new CustomVisitor());
+  return tree.accept(new CustomVisitor()) as SourceFile;
 }
 
 function getPosition(ctx: ParserRuleContext): Position {
@@ -160,7 +162,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -175,91 +177,91 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
     if (ctx.PLUS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "+",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.MINUS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "-",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.DIV() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "/",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.STAR() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "*",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.MOD() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "%",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.LESS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "<",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.LESS_OR_EQUALS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "<=",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.GREATER() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: ">",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.GREATER_OR_EQUALS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: ">=",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.EQUALS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "==",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.NOT_EQUALS() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "!=",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.LOGICAL_AND() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "&&",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
       };
     } else if (ctx.LOGICAL_OR() != null) {
       return {
-        type: "BinaryOperationExpr",
+        type: "BinaryExpr",
         operator: "||",
         left: this.visitExpression(ctx.expression(0)),
         right: this.visitExpression(ctx.expression(1)),
@@ -272,7 +274,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
@@ -344,10 +346,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   //  we ignore typeDecl
   visitDeclaration = (ctx: DeclarationContext): Declaration => {
     if (ctx.constDecl() != null) {
-      console.log("constDecl");
+      // console.log("constDecl");
       return this.visitConstDecl(ctx.constDecl());
     } else if (ctx.varDecl() != null) {
-      console.log("varDecl");
+      // console.log("varDecl");
       return this.visitVarDecl(ctx.varDecl());
     }
     throw new Error("Not implemented");
@@ -381,10 +383,31 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   visitLiteral = (ctx: LiteralContext): Literal => {
     if (ctx.basicLit() != null) {
+      return this.visitBasicLit(ctx.basicLit());
+    }
+  }
+
+  visitBasicLit = (ctx: BasicLitContext): BasicLiteral => {
+    // console.log(ctx.getText());
+    if (ctx.integer() != null) {
       return {
-        // TODO: do for other types
         type: "IntegerLiteral",
-        value: parseInt(ctx.basicLit().getText()),
+        value: parseInt(ctx.integer().getText()),
+      };
+    } else if (ctx.string_() != null) {
+      return {
+        type: "StringLiteral",
+        value: ctx.string_().getText(),
+      };
+    } else if (ctx.TRUE_LIT() != null) {
+      return {
+        type: "BooleanLiteral",
+        value: true,
+      };
+    } else if (ctx.FALSE_LIT() != null) {
+      return {
+        type: "BooleanLiteral",
+        value: false,
       };
     }
   }
