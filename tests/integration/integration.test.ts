@@ -43,6 +43,21 @@ func main() {
 
         const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(30);
-        console.log(result)
+    })
+
+    test("var", () => {
+        const input = `
+package main
+
+const x, y = 10, 20
+
+func main() {
+    var z int = 1
+    x + y + z
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(31);
     })
 })

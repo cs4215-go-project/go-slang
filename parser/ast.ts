@@ -121,7 +121,7 @@ export interface VarDecl extends GoNodeBase {
 export interface VarSpec extends GoNodeBase {
   identifierList: IdentifierList;
   dataType?: DataType;
-  values?: ExpressionList;
+  expressionList?: ExpressionList;
 }
 
 // TODO: add function call

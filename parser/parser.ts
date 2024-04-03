@@ -23,6 +23,7 @@ import GoParser, {
   StatementContext,
   StatementListContext,
   VarDeclContext,
+  VarSpecContext,
 } from "./gen/GoParser";
 import GoParserVisitor from "./gen/GoParserVisitor";
 import {
@@ -349,10 +350,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   //  we ignore typeDecl
   visitDeclaration = (ctx: DeclarationContext): Declaration => {
     if (ctx.constDecl() != null) {
-      // console.log("constDecl");
+      console.log("constDecl");
       return this.visitConstDecl(ctx.constDecl());
     } else if (ctx.varDecl() != null) {
-      // console.log("varDecl");
+      console.log("varDecl");
       return this.visitVarDecl(ctx.varDecl());
     }
     throw new Error("Not implemented");
@@ -398,12 +399,28 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   visitVarDecl = (ctx: VarDeclContext): VarDecl => {
     const specs: VarSpec[] = [];
+    for (const spec of ctx.varSpec_list()) {
+      const varSpec =this.visitVarSpec(spec)
+      specs.push(varSpec);
+    }
+
     return {
       type: "VarDecl",
       //   position: getPosition(ctx),
-      specs: [],
+      specs: specs,
     };
   };
+
+  visitVarSpec = (ctx: VarSpecContext): VarSpec => {
+    return {
+      type: "VarSpec",
+      //   position: getPosition(ctx),
+      identifierList: this.visitIdentifierList(ctx.identifierList()),
+      dataType: ctx.type_()?.getText(),
+      expressionList: this.visitExpressionList(ctx.expressionList()),
+    };
+  }
+
 
   visitOperand = (ctx: OperandContext): Operand => {
     if (ctx.literal() !== null) {

@@ -1,4 +1,4 @@
-import { BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, FunctionDecl, GoNodeBase, Identifier, IntegerLiteral, SourceFile, SourceLevelDeclaration, UnaryExpr } from "../../parser/ast";
+import { BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, FunctionDecl, GoNodeBase, Identifier, IntegerLiteral, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
 type CompileTimeEnvironment = string[][];
 
@@ -16,11 +16,15 @@ function valueIndex(frame: string[], identifier: string) {
     return frame.indexOf(identifier);
 }
 
-function scanDeclarations(comp: SourceLevelDeclaration[]) {
+function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
     let locals = [];
     for (const decl of comp) {
         if (decl.type === "ConstDecl") {
             for (const spec of (decl as ConstDecl).specs) {
+                locals = locals.concat(spec.identifierList.identifiers);
+            }
+        } else if (decl.type === "VarDecl") {
+            for (const spec of (decl as VarDecl).specs) {
                 locals = locals.concat(spec.identifierList.identifiers);
             }
         }
@@ -66,8 +70,9 @@ const compileComp = {
         compileHelper(comp.body, cte);
     },
     "Block": (comp: Block, cte: CompileTimeEnvironment) => {
+        const locals = scanDeclarations(comp.statementList.statements);
         for (let i = 0; i < comp.statementList.statements.length; i++) {
-            compileHelper(comp.statementList.statements[i], cte);
+            compileHelper(comp.statementList.statements[i], compileTimeEnvironmentExtend(locals, cte));
         }
     },
     "Identifier": (comp: Identifier, cte: CompileTimeEnvironment) => {
@@ -99,6 +104,18 @@ const compileComp = {
     "ConstDecl": (comp: ConstDecl, cte: CompileTimeEnvironment) => {
         for (const spec of comp.specs) {
             // parser guarantees that number of identifiers and expr are the same
+            for (let i = 0; i < spec.identifierList.identifiers.length; i++) {
+                compileHelper(spec.expressionList.expressions[i], cte);
+                instrs[wc++] = {
+                    opcode: "ASSIGN",
+                    compile_pos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
+                }
+            }
+        }
+    },
+    "VarDecl": (comp: VarDecl, cte: CompileTimeEnvironment) => {
+        console.log("CTE", cte)
+        for (const spec of comp.specs) {
             for (let i = 0; i < spec.identifierList.identifiers.length; i++) {
                 compileHelper(spec.expressionList.expressions[i], cte);
                 instrs[wc++] = {
