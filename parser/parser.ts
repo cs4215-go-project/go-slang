@@ -361,7 +361,11 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   visitConstDecl = (ctx: ConstDeclContext): ConstDecl => {
     const specs: ConstSpec[] = [];
     for (const spec of ctx.constSpec_list()) {
-      specs.push(this.visitConstSpec(spec));
+      const constSpec =this.visitConstSpec(spec)
+      if (constSpec.identifierList.identifiers.length > constSpec.expressionList.expressions.length) {
+        throw new Error("missing init expr for const decl");
+      }
+      specs.push(constSpec);
     }
     return {
       type: "ConstDecl",
@@ -376,7 +380,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       //   position: getPosition(ctx),
       identifierList: this.visitIdentifierList(ctx.identifierList()),
       dataType: ctx.type_()?.getText(),
-      values: this.visitExpressionList(ctx.expressionList()),
+      expressionList: this.visitExpressionList(ctx.expressionList()),
     };
   }
 
@@ -402,10 +406,15 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitOperand = (ctx: OperandContext): Operand => {
-    if (ctx.literal() != null) {
+    if (ctx.literal() !== null) {
       return this.visitLiteral(ctx.literal());
-    } else if (ctx.L_PAREN && ctx.R_PAREN) {
+    } else if (ctx.L_PAREN() !== null && ctx.R_PAREN !== null) {
       return this.visitExpression(ctx.expression());
+    } else if (ctx.operandName() != null) {
+      return {
+        type: "Identifier",
+        name: ctx.operandName().getText(),
+      };
     }
   }
 

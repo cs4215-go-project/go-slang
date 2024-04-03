@@ -105,7 +105,7 @@ export interface ConstSpec extends GoNodeBase {
   type: "ConstSpec";
   identifierList: IdentifierList;
   dataType?: DataType;
-  values?: ExpressionList;
+  expressionList?: ExpressionList;
 }
 
 export interface ExpressionList extends GoNodeBase {

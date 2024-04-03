@@ -29,4 +29,20 @@ func main() {
         const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(-10);
     })
+
+    test("const", () => {
+        const input = `
+package main
+
+const x, y = 10, 20
+
+func main() {
+    x + y
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(30);
+        console.log(result)
+    })
 })

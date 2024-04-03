@@ -179,7 +179,7 @@ const x = 1
                 type: "IdentifierList",
                 identifiers: ["x"],
               },
-              values: {
+              expressionList: {
                 type: "ExpressionList",
                 expressions: [
                   {
@@ -214,7 +214,7 @@ const x int = 1
                 type: "IdentifierList",
                 identifiers: ["x"],
               },
-              values: {
+              expressionList: {
                 type: "ExpressionList",
                 expressions: [
                   {
@@ -252,7 +252,7 @@ const (
                 type: "IdentifierList",
                 identifiers: ["a", "b"],
               },
-              values: {
+              expressionList: {
                 type: "ExpressionList",
                 expressions: [
                   {
@@ -273,7 +273,7 @@ const (
                 type: "IdentifierList",
                 identifiers: ["c", "d"],
               },
-              values: {
+              expressionList: {
                 type: "ExpressionList",
                 expressions: [
                   {
