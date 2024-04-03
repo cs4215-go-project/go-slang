@@ -95,11 +95,22 @@ export interface ConstDecl extends GoNodeBase {
   specs: ConstSpec[];
 }
 
+/*
+* const (
+*	  a, c int = 1, 3
+*	  b, d     = 2, "hello"
+* )
+*/
 export interface ConstSpec extends GoNodeBase {
   type: "ConstSpec";
   identifierList: IdentifierList;
   dataType?: DataType;
-  values?: Expression[];
+  values?: ExpressionList;
+}
+
+export interface ExpressionList extends GoNodeBase {
+  type: "ExpressionList";
+  expressions: Expression[];
 }
 
 export interface VarDecl extends GoNodeBase {
@@ -110,7 +121,7 @@ export interface VarDecl extends GoNodeBase {
 export interface VarSpec extends GoNodeBase {
   identifierList: IdentifierList;
   dataType?: DataType;
-  values?: Expression[];
+  values?: ExpressionList;
 }
 
 // TODO: add function call

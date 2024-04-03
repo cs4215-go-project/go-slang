@@ -4,8 +4,10 @@ import GoParser, {
   BasicLitContext,
   BlockContext,
   ConstDeclContext,
+  ConstSpecContext,
   DeclarationContext,
   ExpressionContext,
+  ExpressionListContext,
   ExpressionStmtContext,
   FunctionDeclContext,
   IdentifierListContext,
@@ -30,6 +32,7 @@ import {
   ConstSpec,
   Declaration,
   Expression,
+  ExpressionList,
   ExpressionStatement,
   FunctionDecl,
   GoNodeBase,
@@ -357,12 +360,37 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   visitConstDecl = (ctx: ConstDeclContext): ConstDecl => {
     const specs: ConstSpec[] = [];
+    for (const spec of ctx.constSpec_list()) {
+      specs.push(this.visitConstSpec(spec));
+    }
     return {
       type: "ConstDecl",
       //   position: getPosition(ctx),
       specs: specs,
     };
   };
+
+  visitConstSpec = (ctx: ConstSpecContext): ConstSpec => {
+    return {
+      type: "ConstSpec",
+      //   position: getPosition(ctx),
+      identifierList: this.visitIdentifierList(ctx.identifierList()),
+      dataType: ctx.type_()?.getText(),
+      values: this.visitExpressionList(ctx.expressionList()),
+    };
+  }
+
+  visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
+    const expressions: Expression[] = [];
+    for (const expr of ctx.expression_list()) {
+      expressions.push(this.visitExpression(expr));
+    }
+    return {
+      type: "ExpressionList",
+      //   position: getPosition(ctx),
+      expressions: expressions,
+    }
+  }
 
   visitVarDecl = (ctx: VarDeclContext): VarDecl => {
     const specs: VarSpec[] = [];

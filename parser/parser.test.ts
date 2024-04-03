@@ -159,3 +159,137 @@ func main() {
 //     expect(parse(input)).toEqual(expected("<-", "ch"));
 //   });
 });
+
+describe("constant declaration", () => {
+  test("one line, no type", () => {
+    const input = `
+package main
+
+const x = 1
+`;
+    expect(parse(input)).toEqual({
+      type: "SourceFile",
+      declarations: [
+        {
+          type: "ConstDecl",
+          specs: [
+            {
+              type: "ConstSpec",
+              identifierList: {
+                type: "IdentifierList",
+                identifiers: ["x"],
+              },
+              values: {
+                type: "ExpressionList",
+                expressions: [
+                  {
+                    type: "IntegerLiteral",
+                    value: 1,
+                  },
+                ],
+              },
+            },
+          ]
+        },
+      ],
+    });
+  })
+
+  test("one line, typed", () => {
+    const input = `
+package main
+
+const x int = 1
+`;
+    expect(parse(input)).toEqual({
+      type: "SourceFile",
+      declarations: [
+        {
+          type: "ConstDecl",
+          specs: [
+            {
+              type: "ConstSpec",
+              dataType: "int",
+              identifierList: {
+                type: "IdentifierList",
+                identifiers: ["x"],
+              },
+              values: {
+                type: "ExpressionList",
+                expressions: [
+                  {
+                    type: "IntegerLiteral",
+                    value: 1,
+                  },
+                ],
+              },
+            },
+          ]
+        },
+      ],
+    });
+  })
+
+  test("multi line", () => {
+    const input = `
+package main
+
+const (
+	a, b int = 1, 3
+	c, d     = 2, "hello"
+)
+`;
+    expect(parse(input)).toEqual({
+      type: "SourceFile",
+      declarations: [
+        {
+          type: "ConstDecl",
+          specs: [
+            {
+              type: "ConstSpec",
+              dataType: "int",
+              identifierList: {
+                type: "IdentifierList",
+                identifiers: ["a", "b"],
+              },
+              values: {
+                type: "ExpressionList",
+                expressions: [
+                  {
+                    type: "IntegerLiteral",
+                    value: 1,
+                  },
+                  {
+                    type: "IntegerLiteral",
+                    value: 3,
+                  }
+                ],
+              },
+            },
+            {
+              type: "ConstSpec",
+              dataType: undefined,
+              identifierList: {
+                type: "IdentifierList",
+                identifiers: ["c", "d"],
+              },
+              values: {
+                type: "ExpressionList",
+                expressions: [
+                  {
+                    type: "IntegerLiteral",
+                    value: 2,
+                  },
+                  {
+                    type: "StringLiteral",
+                    value: "\"hello\"",
+                  },
+                ],
+              },
+            },
+          ]
+        },
+      ],
+    });
+  })
+});
