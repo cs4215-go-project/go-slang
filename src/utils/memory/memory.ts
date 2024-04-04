@@ -61,7 +61,7 @@ export enum MarkedStatus {
 export default class Memory {
     private data: ArrayBuffer;
     private view: DataView;
-    private heapSize: number;
+    public heapSize: number;
 
     public literals: [number, number, number, number];
 
@@ -88,12 +88,12 @@ export default class Memory {
         this.machineRoots = [];
     
         // initialize free list
-        for (let i = 0; i < this.heapSize; i += NODE_SIZE) {
+        for (let i = 0; i < this.heapSize - NODE_SIZE; i += NODE_SIZE) {
             this.setWord(i, i + NODE_SIZE);
         }
 
         // last word of free list is -1
-        this.setWord((this.heapSize - 1), -1);
+        this.setWord((this.heapSize - NODE_SIZE), -1);
     }
 
     /*
@@ -181,15 +181,19 @@ export default class Memory {
         }
 
         if (this.freeIndex === -1) {
-            throw new Error("Out of memory"); // TODO: garbage collection
+            console.log("Running garbage collection!");
+            this.markSweep();
+            if (this.freeIndex === -1) {
+                throw new Error("Heap exhausted");
+            }
         }
 
         const nodeAddr: number = this.freeIndex;
-        this.freeIndex = this.getWord(nodeAddr);
+        this.freeIndex = this.getWord(nodeAddr); // get next free address
 
         this.setTag(nodeAddr, tag);
         this.setSize(nodeAddr, size);
-        this.setMarked(nodeAddr, 0);
+        this.setMarked(nodeAddr, MarkedStatus.Unmarked);
 
         return nodeAddr;
     }
@@ -239,6 +243,10 @@ export default class Memory {
 
     getBuiltinId(addr: number): number {
         return this.getByteAtOffset(addr, BUILTIN_ID_OFFSET);
+    }
+
+    getBuiltinArity(addr: number): number {
+        return this.getByteAtOffset(addr, BUILTIN_ARITY_OFFSET);
     }
 
     // allocate int
@@ -347,14 +355,14 @@ export default class Memory {
     }
 
     extendEnv(envAddr: number, frameAddr: number): number {
-        const oldSize: number = this.getSize(envAddr);
+        const oldFrameCount: number = this.getNumChildren(envAddr);
 
         this.allocating = [frameAddr, envAddr];
-        const newEnvAddr = this.allocateNode(Tag.Environment, oldSize + 1);
+        const newEnvAddr = this.allocateEnv(oldFrameCount + 1);
         this.allocating = [];
 
         let i;
-        for (i = 0; i < oldSize - 1; i++) {
+        for (i = 0; i < oldFrameCount; i++) {
             const frame = this.getChild(envAddr, i);
             this.setChild(newEnvAddr, i, frame);
         }
