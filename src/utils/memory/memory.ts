@@ -61,31 +61,39 @@ export enum MarkedStatus {
 export default class Memory {
     private data: ArrayBuffer;
     private view: DataView;
+    private heapSize: number;
+
+    public literals: [number, number, number, number];
+
     public freeIndex: number;
     public heapBottom: number;
-    public allocating: number[]; // for garbage collection
-    public literals: [number, number, number, number];    
-    
+    public allocating: number[];
+    public machineRoots: number[];
+
     constructor(numWords: number) {
         // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
-        if (numWords % NODE_SIZE !== 0) {
+        this.heapSize = numWords;
+        if (this.heapSize % NODE_SIZE !== 0) {
             const msg: string = "numWords must be a multiple of " + NODE_SIZE;
             throw new Error(msg);
         }
 
-        this.data = new ArrayBuffer(numWords * WORD_SIZE);
+        this.data = new ArrayBuffer(this.heapSize * WORD_SIZE);
         this.view = new DataView(this.data);
+
+        this.literals = [0, 0, 0, 0];
+        
         this.freeIndex = 0;
         this.heapBottom = 0;
-        this.literals = [0, 0, 0, 0];
-
+        this.machineRoots = [];
+    
         // initialize free list
-        for (let i = 0; i < numWords; i += NODE_SIZE) {
+        for (let i = 0; i < this.heapSize; i += NODE_SIZE) {
             this.setWord(i, i + NODE_SIZE);
         }
 
         // last word of free list is -1
-        this.setWord((numWords - 1), -1);
+        this.setWord((this.heapSize - 1), -1);
     }
 
     /*
@@ -250,7 +258,9 @@ export default class Memory {
      *                     1 byte, 4 bytes pc
      */ 
     allocateClosure(arity: number, pc: number, env: number): number {
+        this.allocating = [env];
         const addr: number = this.allocateNode(Tag.Closure, 2);
+        this.allocating = [];
 
         this.setByteAtOffset(addr, CLOSURE_ARITY_OFFSET, arity);
         this.setFourBytesAtOffset(addr, CLOSURE_PC_OFFSET, pc);
@@ -276,7 +286,9 @@ export default class Memory {
      * [tag, size, marked, _ , pc, pc, pc, pc][env (only child)]
      */
     allocateCallframe(pc: number, env: number): number {
+        this.allocating = [env];
         const addr: number = this.allocateNode(Tag.Callframe, 2);
+        this.allocating = [];
 
         this.setFourBytesAtOffset(addr, CALLFRAME_PC_OFFSET, pc);
         this.setChild(addr, 0, env);
@@ -297,9 +309,10 @@ export default class Memory {
      * [tag, size, marked][env (only child)]
      */
     allocateBlockframe(parentEnv: number): number {
+        this.allocating = [parentEnv];
         const addr: number = this.allocateNode(Tag.Blockframe, 2);
-
         this.setChild(addr, 0, parentEnv);
+        this.allocating = [];
 
         return addr;
     }
@@ -335,7 +348,10 @@ export default class Memory {
 
     extendEnv(envAddr: number, frameAddr: number): number {
         const oldSize: number = this.getSize(envAddr);
+
+        this.allocating = [frameAddr, envAddr];
         const newEnvAddr = this.allocateNode(Tag.Environment, oldSize + 1);
+        this.allocating = [];
 
         let i;
         for (i = 0; i < oldSize - 1; i++) {
@@ -390,4 +406,47 @@ export default class Memory {
                 throw new Error("Unsupported type");
         }
     }
+
+    /*
+     * Mark sweep garbage collection functions
+     */
+    markSweep() {
+        const allRoots: number[] = [...this.machineRoots, ...this.allocating];
+        for (const root of allRoots) {
+            this.mark(root);
+        }
+
+        this.sweep();
+    }
+
+    mark(addr: number) {
+        if (addr < this.heapBottom || addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
+            return;
+        }
+        
+        this.setMarked(addr, MarkedStatus.Marked);
+
+        const numChildren = this.getNumChildren(addr);
+        for (let i = 0; i < numChildren; i++) {
+            this.mark(this.getChild(addr, i));
+        }
+    }
+
+    sweep() {
+        let i = this.heapBottom;
+        while (i < this.heapSize) {
+            if (this.getMarked(i) === MarkedStatus.Marked) {
+                this.setMarked(i, MarkedStatus.Unmarked);
+            } else {
+                this.free(i);
+            }
+            i += WORD_SIZE;
+        }    
+    }
+
+    free(addr: number) {
+        this.setWord(addr, this.freeIndex);
+        this.freeIndex = addr;
+    }
 }
+

@@ -23,14 +23,14 @@ export class Machine {
     public setOutput: (output: any) => void;
     public programOutput: any[];
 
-    // memory
-    private memory: Memory;
-
     // machine state
     private pc: number;
     private opStack: number[];
     private runtimeStack: number[];
-    
+
+    // memory
+    private memory: Memory;
+
     private env: number;
 
     // builtin variables
@@ -45,14 +45,14 @@ export class Machine {
         this.setOutput = setOutput;
         this.programOutput = [];
         this.setOutput(this.programOutput);
-        
-        // memory
-        this.memory = new Memory(numWords);
 
         // machine state
         this.pc = 0;
         this.opStack = [];
         this.runtimeStack = [];
+
+        // memory
+        this.memory = new Memory(numWords);
 
         // allocate literals first
         this.memory.allocateLiterals();
@@ -67,6 +67,9 @@ export class Machine {
 
         // set heap bottom after allocating literals and builtins
         this.memory.heapBottom = this.memory.freeIndex;
+
+        // done allocating roots, set roots for garbage collection
+        this.memory.machineRoots = [...this.opStack, ...this.runtimeStack, this.env];
     }
 
     run(): any {  
