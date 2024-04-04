@@ -61,31 +61,31 @@ export enum MarkedStatus {
 export default class Memory {
     private data: ArrayBuffer;
     private view: DataView;
-    public free_index: number;
-    public heap_bottom: number;
+    public freeIndex: number;
+    public heapBottom: number;
     public allocating: number[]; // for garbage collection
     public literals: [number, number, number, number];    
     
-    constructor(num_words: number) {
+    constructor(numWords: number) {
         // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
-        if (num_words % NODE_SIZE !== 0) {
-            const msg: string = "num_words must be a multiple of " + NODE_SIZE;
+        if (numWords % NODE_SIZE !== 0) {
+            const msg: string = "numWords must be a multiple of " + NODE_SIZE;
             throw new Error(msg);
         }
 
-        this.data = new ArrayBuffer(num_words * WORD_SIZE);
+        this.data = new ArrayBuffer(numWords * WORD_SIZE);
         this.view = new DataView(this.data);
-        this.free_index = 0;
-        this.heap_bottom = 0;
+        this.freeIndex = 0;
+        this.heapBottom = 0;
         this.literals = [0, 0, 0, 0];
 
         // initialize free list
-        for (let i = 0; i < num_words; i += NODE_SIZE) {
-            this.set_word(i, i + NODE_SIZE);
+        for (let i = 0; i < numWords; i += NODE_SIZE) {
+            this.setWord(i, i + NODE_SIZE);
         }
 
         // last word of free list is -1
-        this.set_word((num_words - 1), -1);
+        this.setWord((numWords - 1), -1);
     }
 
     /*
@@ -93,73 +93,73 @@ export default class Memory {
      */
 
     // set and get a word (8 bytes) at word index (used for setting)
-    set_word(index: number, value: number): void {
+    setWord(index: number, value: number): void {
         this.view.setFloat64(index * WORD_SIZE, value);
     }
 
-    get_word(index: number): number {
+    getWord(index: number): number {
         return this.view.getFloat64(index * WORD_SIZE);
     }
 
     // set and get a used node's tag; index is word index
-    set_tag(index: number, tag: Tag): void {
+    setTag(index: number, tag: Tag): void {
         this.view.setUint8(index * WORD_SIZE + TAG_OFFSET, tag as number);
     }
 
-    get_tag(index: number): Tag {
+    getTag(index: number): Tag {
         return this.view.getUint8(index * WORD_SIZE + TAG_OFFSET) as Tag;
     }
 
     // set and get a used node's size; index is word index
-    set_size(index: number, size: number): void {
+    setSize(index: number, size: number): void {
         this.view.setUint8(index * WORD_SIZE + SIZE_OFFSET, size);
     }
 
-    get_size(index: number): number {
+    getSize(index: number): number {
         return this.view.getUint8(index * WORD_SIZE + SIZE_OFFSET);
     }
 
     // set and get a used node's marked flag; index is word index
-    set_marked(index: number, marked: MarkedStatus): void {
+    setMarked(index: number, marked: MarkedStatus): void {
         this.view.setUint8(index * WORD_SIZE + MARKED_OFFSET, marked as number);
     }
 
-    get_marked(index: number): MarkedStatus {
+    getMarked(index: number): MarkedStatus {
         return this.view.getUint8(index * WORD_SIZE + MARKED_OFFSET) as MarkedStatus;
     }
 
     // set specific byte in node's metadata
-    set_byte_at_offset(index: number, offset: number, value: number): void {
+    setByteAtOffset(index: number, offset: number, value: number): void {
         this.view.setUint8(index * WORD_SIZE + offset, value);
     }
 
-    get_byte_at_offset(index: number, offset: number): number {
+    getByteAtOffset(index: number, offset: number): number {
         return this.view.getUint8(index * WORD_SIZE + offset);
     }
 
     // set 4 bytes in node's metadata
-    set_four_bytes_at_offset(index: number, offset: number, value: number): void {
+    setFourBytesAtOffset(index: number, offset: number, value: number): void {
         this.view.setInt32(index * WORD_SIZE + offset, value);
     }
 
-    get_four_bytes_at_offset(index: number, offset: number): number {
+    getFourBytesAtOffset(index: number, offset: number): number {
         return this.view.getInt32(index * WORD_SIZE + offset);
     }
 
     // set and get a used node's payload/children; index is word index
-    set_child(index: number, child_index: number, value: number): void {
-        this.set_word(index + child_index + 1, value);
+    setChild(index: number, childIndex: number, value: number): void {
+        this.setWord(index + childIndex + 1, value);
     }
 
-    get_child(index: number, child_index: number): number {
-        return this.get_word(index + child_index + 1);
+    getChild(index: number, childIndex: number): number {
+        return this.getWord(index + childIndex + 1);
     }
 
     // get the number of children a node has
-    get_num_children(index: number): number {
-        return this.get_tag(index) === Tag.Int 
+    getNumChildren(index: number): number {
+        return this.getTag(index) === Tag.Int 
                 ? 0 
-                : this.get_size(index) - 1;
+                : this.getSize(index) - 1;
     }
 
     /*
@@ -167,81 +167,81 @@ export default class Memory {
      */
 
     // allocates node metadata, called prior to allocating payload/children
-    allocate_node(tag: Tag, size: number): number {
+    allocateNode(tag: Tag, size: number): number {
         if (size < 1 || size > NODE_SIZE) {
             throw new Error("Invalid node size");
         }
 
-        if (this.free_index === -1) {
+        if (this.freeIndex === -1) {
             throw new Error("Out of memory"); // TODO: garbage collection
         }
 
-        const node_addr: number = this.free_index;
-        this.free_index = this.get_word(node_addr);
+        const nodeAddr: number = this.freeIndex;
+        this.freeIndex = this.getWord(nodeAddr);
 
-        this.set_tag(node_addr, tag);
-        this.set_size(node_addr, size);
-        this.set_marked(node_addr, 0);
+        this.setTag(nodeAddr, tag);
+        this.setSize(nodeAddr, size);
+        this.setMarked(nodeAddr, 0);
 
-        return node_addr;
+        return nodeAddr;
     }
 
     // allocate literal values
-    allocate_literals(): void {
-        const nil_addr: number = this.allocate_node(Tag.Nil, 1);
-        const unassigned_addr: number = this.allocate_node(Tag.Unassigned, 1);
-        const true_addr: number = this.allocate_node(Tag.True, 1);
-        const false_addr: number = this.allocate_node(Tag.False, 1);
+    allocateLiterals(): void {
+        const nilAddr: number = this.allocateNode(Tag.Nil, 1);
+        const unassignedAddr: number = this.allocateNode(Tag.Unassigned, 1);
+        const trueAddr: number = this.allocateNode(Tag.True, 1);
+        const falseAddr: number = this.allocateNode(Tag.False, 1);
 
-        this.literals = [nil_addr, unassigned_addr, true_addr, false_addr];
+        this.literals = [nilAddr, unassignedAddr, trueAddr, falseAddr];
     }
 
     /*
      * allocate frame
      * [tag, size, marked][declarations...]
      */
-    allocate_frame(num_declarations: number): number {
-        return this.allocate_node(Tag.Frame, num_declarations + 1);
+    allocateFrame(numDeclarations: number): number {
+        return this.allocateNode(Tag.Frame, numDeclarations + 1);
     }
 
     // allocate builtin functions: make, println, etc
-    allocate_builtins_frame(builtins_metadata: BuiltinMetadata): number {
-        const values: any = Object.values(builtins_metadata);
-        const mainframe_addr: number = this.allocate_frame(values.length);
+    allocateBuiltinsFrame(builtinsMetadata: BuiltinMetadata): number {
+        const values: any = Object.values(builtinsMetadata);
+        const mainframeAddr: number = this.allocateFrame(values.length);
 
         for (let i = 0; i < values.length; i++) {
-            const builtin_id: number = values[i].id;
+            const builtinId: number = values[i].id;
             const arity: number = values[i].arity;
-            const builtin_addr = this.allocate_builtin(builtin_id, arity);
-            this.set_child(mainframe_addr, i, builtin_addr);
+            const builtinAddr = this.allocateBuiltin(builtinId, arity);
+            this.setChild(mainframeAddr, i, builtinAddr);
         }
 
-        return mainframe_addr;
+        return mainframeAddr;
     }
 
     // [tag, size, marked, builtin_id, arity][no children]
-    allocate_builtin(builtin_id: number, arity: number): number {
-        const addr: number = this.allocate_node(Tag.Builtin, 1);
+    allocateBuiltin(builtinId: number, arity: number): number {
+        const addr: number = this.allocateNode(Tag.Builtin, 1);
 
-        this.set_byte_at_offset(addr, BUILTIN_ID_OFFSET, builtin_id);
-        this.set_byte_at_offset(addr, BUILTIN_ARITY_OFFSET, arity);
+        this.setByteAtOffset(addr, BUILTIN_ID_OFFSET, builtinId);
+        this.setByteAtOffset(addr, BUILTIN_ARITY_OFFSET, arity);
 
         return addr;
     }
 
-    get_builtin_id(addr: number): number {
-        return this.get_byte_at_offset(addr, BUILTIN_ID_OFFSET);
+    getBuiltinId(addr: number): number {
+        return this.getByteAtOffset(addr, BUILTIN_ID_OFFSET);
     }
 
     // allocate int
-    allocate_int(value: number): number {
-        const addr: number = this.allocate_node(Tag.Int, 2);
-        this.set_child(addr, 0, value);
+    allocateInt(value: number): number {
+        const addr: number = this.allocateNode(Tag.Int, 2);
+        this.setChild(addr, 0, value);
         return addr;
     }
 
-    get_int(addr: number): number {
-        return this.get_child(addr, 0);
+    getIntValue(addr: number): number {
+        return this.getChild(addr, 0);
     }
 
     /* 
@@ -249,107 +249,109 @@ export default class Memory {
      * [tag, size, marked, arity, pc, pc, pc, pc][env (only child)]
      *                     1 byte, 4 bytes pc
      */ 
-    allocate_closure(arity: number, pc: number, env: number): number {
-        const addr: number = this.allocate_node(Tag.Closure, 2);
+    allocateClosure(arity: number, pc: number, env: number): number {
+        const addr: number = this.allocateNode(Tag.Closure, 2);
 
-        this.set_byte_at_offset(addr, CLOSURE_ARITY_OFFSET, arity);
-        this.set_four_bytes_at_offset(addr, CLOSURE_PC_OFFSET, pc);
-        this.set_child(addr, 0, env);
+        this.setByteAtOffset(addr, CLOSURE_ARITY_OFFSET, arity);
+        this.setFourBytesAtOffset(addr, CLOSURE_PC_OFFSET, pc);
+        this.setChild(addr, 0, env);
 
         return addr;
     }
 
-    get_closure_arity(addr: number): number {
-        return this.get_byte_at_offset(addr, CLOSURE_ARITY_OFFSET);
+    getClosureArity(addr: number): number {
+        return this.getByteAtOffset(addr, CLOSURE_ARITY_OFFSET);
     }
 
-    get_closure_pc(addr: number): number {
-        return this.get_four_bytes_at_offset(addr, CLOSURE_PC_OFFSET);
+    getClosurePc(addr: number): number {
+        return this.getFourBytesAtOffset(addr, CLOSURE_PC_OFFSET);
     }
 
-    get_closure_env(addr: number): number {
-        return this.get_child(addr, 0);
+    getClosureEnv(addr: number): number {
+        return this.getChild(addr, 0);
     }
 
     /*
      * allocate callframe
      * [tag, size, marked, _ , pc, pc, pc, pc][env (only child)]
      */
-    allocate_callframe(pc: number, env: number): number {
-        const addr: number = this.allocate_node(Tag.Callframe, 2);
+    allocateCallframe(pc: number, env: number): number {
+        const addr: number = this.allocateNode(Tag.Callframe, 2);
 
-        this.set_four_bytes_at_offset(addr, CALLFRAME_PC_OFFSET, pc);
-        this.set_child(addr, 0, env);
+        this.setFourBytesAtOffset(addr, CALLFRAME_PC_OFFSET, pc);
+        this.setChild(addr, 0, env);
 
         return addr;
     }
 
-    get_callframe_pc(addr: number): number {
-        return this.get_four_bytes_at_offset(addr, CALLFRAME_PC_OFFSET);
+    getCallframePc(addr: number): number {
+        return this.getFourBytesAtOffset(addr, CALLFRAME_PC_OFFSET);
     }
 
-    get_callframe_env(addr: number): number {
-        return this.get_child(addr, 0);
+    getCallframeEnv(addr: number): number {
+        return this.getChild(addr, 0);
     }
 
     /*
      * allocate blockframe
      * [tag, size, marked][env (only child)]
      */
-    allocate_blockframe(parent_env: number): number {
-        const addr: number = this.allocate_node(Tag.Blockframe, 2);
+    allocateBlockframe(parentEnv: number): number {
+        const addr: number = this.allocateNode(Tag.Blockframe, 2);
 
-        this.set_child(addr, 0, parent_env);
+        this.setChild(addr, 0, parentEnv);
 
         return addr;
     }
 
-    get_blockframe_parent_env(addr: number): number {
-        return this.get_child(addr, 0);
+    getBlockframeParentEnv(addr: number): number {
+        return this.getChild(addr, 0);
     }
 
     /*
      * allocate environment
      * [tag, size, marked][frames...] (frames are children)
      */
-    allocate_env(num_frames: number): number {
-        const addr: number = this.allocate_node(Tag.Environment, num_frames + 1);
+    allocateEnv(numFrames: number): number {
+        const addr: number = this.allocateNode(Tag.Environment, numFrames + 1);
         return addr;
     }
 
-    get_value_from_env(env_addr: number, compile_time_pos: [number, number]): number {
-        const frame_index: number = compile_time_pos[0];
-        const value_index: number = compile_time_pos[1];
+    getValueFromEnv(envAddr: number, compileTimePos: [number, number]): number {
+        const frameIndex: number = compileTimePos[0];
+        const valueIndex: number = compileTimePos[1];
 
-        const frame_addr = this.get_child(env_addr, frame_index);
-        return this.get_child(frame_addr, value_index);
+        const frameAddr = this.getChild(envAddr, frameIndex);
+        return this.getChild(frameAddr, valueIndex);
     }
 
-    set_value_in_env(env_addr: number, compile_time_pos: [number, number], value: number): void {
-        const frame_index: number = compile_time_pos[0];
-        const value_index: number = compile_time_pos[1];
+    setValueInEnv(envAddr: number, compileTimePos: [number, number], value: number): void {
+        const frameIndex: number = compileTimePos[0];
+        const valueIndex: number = compileTimePos[1];
 
-        const frame_addr = this.get_child(env_addr, frame_index);
-        this.set_child(frame_addr, value_index, value);
+        const frameAddr = this.getChild(envAddr, frameIndex);
+        this.setChild(frameAddr, valueIndex, value);
     }
 
-    extend_env(env_addr: number, frame_addr: number): number {
-        const old_size: number = this.get_size(env_addr);
-        const new_env_addr = this.allocate_node(Tag.Environment, old_size + 1);
+    extendEnv(envAddr: number, frameAddr: number): number {
+        const oldSize: number = this.getSize(envAddr);
+        const newEnvAddr = this.allocateNode(Tag.Environment, oldSize + 1);
 
         let i;
-        for (i = 0; i < old_size - 1; i++) {
-            const frame = this.get_child(env_addr, i);
-            this.set_child(new_env_addr, i, frame);
+        for (i = 0; i < oldSize - 1; i++) {
+            const frame = this.getChild(envAddr, i);
+            this.setChild(newEnvAddr, i, frame);
         }
-        this.set_child(new_env_addr, i, frame_addr);
+        this.setChild(newEnvAddr, i, frameAddr);
 
-        return new_env_addr;
+        return newEnvAddr;
     }
 
     /*
      * TODO: allocate channel
-     * [tag, size, marked, _][buffer, capacity] (this was copilot generated)
+     * need an efficient implementation of a circular queue
+     * need head and tail pointers
+     * [tag, size, marked, head, tail, buffer, capacity][...buffered items]
      */
     
     /*
@@ -365,14 +367,14 @@ export default class Memory {
         } else if (obj === undefined) {
             return this.literals[Tag.Unassigned];
         } else if (typeof obj === "number") {
-            return this.allocate_int(obj);
+            return this.allocateInt(obj);
         }
         throw new Error("Unsupported type");
     }
 
     // given an address, first interprets the tag, then unboxes and returns the value
     unbox(addr: number): any {
-        const tag: Tag = this.get_tag(addr);
+        const tag: Tag = this.getTag(addr);
         switch (tag) {
             case Tag.Nil:
                 return null;
@@ -383,7 +385,7 @@ export default class Memory {
             case Tag.False:
                 return false;
             case Tag.Int:
-                return this.get_int(addr);
+                return this.getIntValue(addr);
             default:
                 throw new Error("Unsupported type");
         }

@@ -47,7 +47,7 @@ describe("binary expression", () => {
     test("addition", () => {
         const instructions = compile(input("+"));
         expect(instructions).toEqual([
-            { opcode: "ENTER_SCOPE", num_declarations: 0 },
+            { opcode: "ENTER_SCOPE", numDeclarations: 0 },
             { opcode: "LDC", value: 1 },
             { opcode: "LDC", value: 2 },
             { opcode: "BINOP", operator: "+" },
@@ -87,9 +87,9 @@ describe("constant declaration", () => {
     }
     const instructions = compile(input);
         expect(instructions).toEqual([
-            { opcode: "ENTER_SCOPE", num_declarations: 1 },
+            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
             { opcode: "LDC", value: 1 },
-            { opcode: "ASSIGN", compile_pos: [1, 0] },
+            { opcode: "ASSIGN", compilePos: [1, 0] },
             { opcode: "EXIT_SCOPE" },
             { opcode: "DONE" },
         ])

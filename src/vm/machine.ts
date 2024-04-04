@@ -5,11 +5,11 @@ import {compile, Instruction} from "./compiler";
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 
-export default function parseCompileAndRun(mem_size: number, input: string, setOutput: (output: any) => void): any {
+export default function parseCompileAndRun(memSize: number, input: string, setOutput: (output: any) => void): any {
     try {
         const parsed = parse(input);
         const instructions = compile(parsed);
-        return new Machine(mem_size, instructions, setOutput).run();
+        return new Machine(memSize, instructions, setOutput).run();
     } catch (e) {
         return e;
     }
@@ -28,17 +28,17 @@ export class Machine {
 
     // machine state
     private pc: number;
-    private op_stack: number[];
-    private runtime_stack: number[];
+    private opStack: number[];
+    private runtimeStack: number[];
     
     private env: number;
 
     // builtin variables
-    private builtin_implementations: {};
-    private builtin_metadata: BuiltinMetadata;
+    private builtinImpls: {};
+    private builtinMetadata: BuiltinMetadata;
     private builtins: {};
 
-    constructor(num_words: number, instructions: Instruction[], setOutput: (output: any) => void) {
+    constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
 
         // frontend
@@ -47,26 +47,26 @@ export class Machine {
         this.setOutput(this.programOutput);
         
         // memory
-        this.memory = new Memory(num_words);
+        this.memory = new Memory(numWords);
 
         // machine state
         this.pc = 0;
-        this.op_stack = [];
-        this.runtime_stack = [];
+        this.opStack = [];
+        this.runtimeStack = [];
 
         // allocate literals first
-        this.memory.allocate_literals();
+        this.memory.allocateLiterals();
 
-        this.env = this.memory.allocate_env(0);
+        this.env = this.memory.allocateEnv(0);
         
         // builtins allocation
-        this.init_builtin_implementations();
-        this.init_builtin_metadata();     
-        const builtins_frame_addr = this.memory.allocate_builtins_frame(this.builtin_metadata);
-        this.env = this.memory.extend_env(builtins_frame_addr, this.env);
+        this.initBuiltinImpls();
+        this.initBuiltinMetadata();     
+        const builtinFrameAddr = this.memory.allocateBuiltinsFrame(this.builtinMetadata);
+        this.env = this.memory.extendEnv(builtinFrameAddr, this.env);
 
         // set heap bottom after allocating literals and builtins
-        this.memory.heap_bottom = this.memory.free_index;
+        this.memory.heapBottom = this.memory.freeIndex;
     }
 
     run(): any {  
@@ -75,146 +75,146 @@ export class Machine {
             this.execute(instr);
         }
 
-        const program_result_addr = this.op_stack.pop();
-        return this.memory.unbox(program_result_addr);
+        const resultAddress = this.opStack.pop();
+        return this.memory.unbox(resultAddress);
     }
 
     execute(instr: Instruction): void {
         switch (instr.opcode) {
             case "LDC": {
                 const addr = this.memory.box(instr.value);
-                this.op_stack.push(addr);
+                this.opStack.push(addr);
                 break;
             }
             case "BINOP": {
-                const right_op_addr = this.op_stack.pop();
-                const left_op_addr = this.op_stack.pop();
+                const rightOpAddr = this.opStack.pop();
+                const leftOpAddr = this.opStack.pop();
 
-                const left = this.memory.unbox(left_op_addr);
-                const right = this.memory.unbox(right_op_addr);
+                const left = this.memory.unbox(leftOpAddr);
+                const right = this.memory.unbox(rightOpAddr);
 
-                const result = this.execute_binop(instr.operator, left, right);
-                const result_addr = this.memory.box(result);
+                const result = this.executeBinaryOp(instr.operator, left, right);
+                const resultAddr = this.memory.box(result);
 
-                this.op_stack.push(result_addr);
+                this.opStack.push(resultAddr);
                 break;
             }
             case "UNOP": {
-                const op_addr = this.op_stack.pop();
-                const operand = this.memory.unbox(op_addr);
+                const opAddr = this.opStack.pop();
+                const operand = this.memory.unbox(opAddr);
 
-                const result = this.execute_unop(instr.operator, operand);
-                const result_addr = this.memory.box(result);
+                const result = this.executeUnaryOp(instr.operator, operand);
+                const resultAddr = this.memory.box(result);
 
-                this.op_stack.push(result_addr);
+                this.opStack.push(resultAddr);
                 break;
             }
             case "JOF": {
-                const addr = this.op_stack.pop();
+                const addr = this.opStack.pop();
                 const condition = this.memory.unbox(addr);
 
                 if (!condition) {
-                    this.pc = instr.target_instr;
+                    this.pc = instr.targetInstr;
                 }
                 break;
             }
             case "GOTO": {
-                this.pc = instr.target_instr;
+                this.pc = instr.targetInstr;
                 break;
             }
             case "POP": {
-                this.op_stack.pop();
+                this.opStack.pop();
                 break;
             }
             case "ENTER_SCOPE": {
-                const blockframe_addr = this.memory.allocate_blockframe(this.env);
-                this.runtime_stack.push(blockframe_addr);
+                const blockframeAddr = this.memory.allocateBlockframe(this.env);
+                this.runtimeStack.push(blockframeAddr);
 
-                const new_frame_addr = this.memory.allocate_frame(instr.num_declarations);
-                this.env = this.memory.extend_env(new_frame_addr, this.env);
+                const newFrameAddr = this.memory.allocateFrame(instr.numDeclarations);
+                this.env = this.memory.extendEnv(newFrameAddr, this.env);
 
-                for (let i = 0; i < instr.num_declarations; i++) {
-                    this.memory.set_child(new_frame_addr, i, this.memory.literals[Tag.Unassigned]); // unassigned
+                for (let i = 0; i < instr.numDeclarations; i++) {
+                    this.memory.setChild(newFrameAddr, i, this.memory.literals[Tag.Unassigned]); // unassigned
                 }
                 break;
             }
             case "EXIT_SCOPE": {
-                const blockframe_addr = this.runtime_stack.pop();
-                this.env = this.memory.get_blockframe_parent_env(blockframe_addr);
+                const blockframeAddr = this.runtimeStack.pop();
+                this.env = this.memory.getBlockframeParentEnv(blockframeAddr);
                 break;
             }
             case "LD": {
-                const addr = this.memory.get_value_from_env(this.env, instr.compile_pos);
-                if (this.memory.get_tag(addr) === Tag.Unassigned) {
+                const addr = this.memory.getValueFromEnv(this.env, instr.compilePos);
+                if (this.memory.getTag(addr) === Tag.Unassigned) {
                     throw new Error("Variable '" + instr.sym + "' used before assignment: ");
                 }
-                this.op_stack.push(addr);
+                this.opStack.push(addr);
             }
             case "ASSIGN": {
-                const addr = this.op_stack[this.op_stack.length - 1];
-                this.memory.set_value_in_env(this.env, instr.compile_pos, addr);
+                const addr = this.opStack[this.opStack.length - 1];
+                this.memory.setValueInEnv(this.env, instr.compilePos, addr);
                 break;
             }
             case "LDF": {
-                const closure_addr = this.memory.allocate_closure(instr.arity, instr.skip, this.env);
-                this.op_stack.push(closure_addr);
+                const closureAddr = this.memory.allocateClosure(instr.arity, instr.skip, this.env);
+                this.opStack.push(closureAddr);
                 break;
             }
             case "CALL": {
                 const arity = instr.arity;
-                const closure_addr = this.op_stack[this.op_stack.length - 1 - arity];
+                const closureAddr = this.opStack[this.opStack.length - 1 - arity];
 
-                if (this.memory.get_tag(closure_addr) === Tag.Builtin) {
-                    const builtin_id = this.memory.get_builtin_id(closure_addr);
-                    this.apply_builtin(builtin_id);
+                if (this.memory.getTag(closureAddr) === Tag.Builtin) {
+                    const builtinId = this.memory.getBuiltinId(closureAddr);
+                    this.applyBuiltin(builtinId);
                     return;
                 }
 
-                const new_pc = this.memory.get_closure_pc(closure_addr);
-                const new_frame_addr = this.memory.allocate_frame(arity);
+                const newPc = this.memory.getClosurePc(closureAddr);
+                const newFrameAddr = this.memory.allocateFrame(arity);
 
                 for (let i = arity - 1; i >= 0; i--) {
-                    const arg = this.op_stack.pop();
-                    this.memory.set_child(new_frame_addr, i, arg);
+                    const arg = this.opStack.pop();
+                    this.memory.setChild(newFrameAddr, i, arg);
                 }
                 
                 // pc has already been incremented by pc++ in run(), so we can push this value
-                const callframe_addr = this.memory.allocate_callframe(this.pc, this.env);
-                this.runtime_stack.push(callframe_addr);
+                const callframeAddr = this.memory.allocateCallframe(this.pc, this.env);
+                this.runtimeStack.push(callframeAddr);
 
-                this.op_stack.pop(); // pop closure address
-                this.env = this.memory.extend_env(new_frame_addr, this.memory.get_closure_env(closure_addr));
+                this.opStack.pop(); // pop closure address
+                this.env = this.memory.extendEnv(newFrameAddr, this.memory.getClosureEnv(closureAddr));
 
-                this.pc = new_pc;
+                this.pc = newPc;
             }
             case "TAIL_CALL": {
                 const arity = instr.arity;
-                const closure_addr = this.op_stack[this.op_stack.length - 1 - arity];
+                const closureAddr = this.opStack[this.opStack.length - 1 - arity];
 
-                if (this.memory.get_tag(closure_addr) === Tag.Builtin) {
-                    const builtin_id = this.memory.get_builtin_id(closure_addr);
-                    this.apply_builtin(builtin_id);
+                if (this.memory.getTag(closureAddr) === Tag.Builtin) {
+                    const builtinId = this.memory.getBuiltinId(closureAddr);
+                    this.applyBuiltin(builtinId);
                     return;
                 }
 
-                const new_pc = this.memory.get_closure_pc(closure_addr);
-                const new_frame_addr = this.memory.allocate_frame(arity);
+                const newPc = this.memory.getClosurePc(closureAddr);
+                const newFrameAddr = this.memory.allocateFrame(arity);
 
                 for (let i = arity - 1; i >= 0; i--) {
-                    const arg = this.op_stack.pop();
-                    this.memory.set_child(new_frame_addr, i, arg);
+                    const arg = this.opStack.pop();
+                    this.memory.setChild(newFrameAddr, i, arg);
                 }
 
-                this.op_stack.pop(); // pop closure address
-                this.env = this.memory.extend_env(new_frame_addr, this.memory.get_closure_env(closure_addr));
+                this.opStack.pop(); // pop closure address
+                this.env = this.memory.extendEnv(newFrameAddr, this.memory.getClosureEnv(closureAddr));
 
-                this.pc = new_pc;
+                this.pc = newPc;
             }
             case "RESET": {
-                const top_frame_addr = this.runtime_stack.pop();
-                if (this.memory.get_tag(top_frame_addr) === Tag.Callframe) {
-                    this.pc = this.memory.get_callframe_pc(top_frame_addr);
-                    this.env = this.memory.get_callframe_env(top_frame_addr);
+                const topFrameAddr = this.runtimeStack.pop();
+                if (this.memory.getTag(topFrameAddr) === Tag.Callframe) {
+                    this.pc = this.memory.getCallframePc(topFrameAddr);
+                    this.env = this.memory.getCallframeEnv(topFrameAddr);
                 } else {
                     this.pc--;
                 }
@@ -225,7 +225,7 @@ export class Machine {
         }
     }
 
-    execute_binop(op: string, left: Literal, right: Literal): Literal {
+    executeBinaryOp(op: string, left: Literal, right: Literal): Literal {
         switch (op) {
             case "+": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
@@ -304,7 +304,7 @@ export class Machine {
         }
     }
 
-    execute_unop(op: string, operand: Literal): Literal {
+    executeUnaryOp(op: string, operand: Literal): Literal {
         switch (op) {
             case "-":
                 if (typeof operand !== 'number') {
@@ -321,11 +321,11 @@ export class Machine {
         }
     }   
 
-    init_builtin_implementations(): void {
-        this.builtin_implementations = {
+    initBuiltinImpls(): void {
+        this.builtinImpls = {
             println: {
                 func: () => {
-                    const addr = this.op_stack.pop();
+                    const addr = this.opStack.pop();
                     const valueToPrint = this.memory.unbox(addr);
                     this.programOutput.push(String(valueToPrint));
                     this.setOutput(this.programOutput);
@@ -334,7 +334,7 @@ export class Machine {
             },
             panic: {
                 func: () => {
-                    const addr = this.op_stack.pop();
+                    const addr = this.opStack.pop();
                     const valueToPanic = this.memory.unbox(addr);
                     throw new Error(valueToPanic.toString());
                 },
@@ -342,7 +342,7 @@ export class Machine {
             },
             sleep: {
                 func: () => {
-                    const addr = this.op_stack.pop();
+                    const addr = this.opStack.pop();
                     const duration = this.memory.unbox(addr);
                     new Promise(resolve => setTimeout(resolve, duration));
                 },
@@ -351,11 +351,11 @@ export class Machine {
             make: {
                 func: () =>{
                     // only for Go channels
-                    const type_addr = this.op_stack.pop();
-                    const type = this.memory.unbox(type_addr);
+                    const typeAddr = this.opStack.pop();
+                    const type = this.memory.unbox(typeAddr);
 
-                    const capacity_addr = this.op_stack.pop();
-                    const capacity = this.memory.unbox(capacity_addr);
+                    const capacityAddr = this.opStack.pop();
+                    const capacity = this.memory.unbox(capacityAddr);
                     
                     // TODO: change the way type is checked (include memory tags)
                     if (type !== "chan") {
@@ -374,21 +374,21 @@ export class Machine {
             },
             max: {
                 func: () => {
-                    const right_op_addr = this.op_stack.pop();
-                    const left_op_addr = this.op_stack.pop();
+                    const rightOpAddr = this.opStack.pop();
+                    const leftOpAddr = this.opStack.pop();
 
                     // check operand types
-                    if (this.memory.get_tag(left_op_addr) !== Tag.Int || this.memory.get_tag(right_op_addr) !== Tag.Int) {
+                    if (this.memory.getTag(leftOpAddr) !== Tag.Int || this.memory.getTag(rightOpAddr) !== Tag.Int) {
                         throw new Error("max() only allowed for integers");
                     }
 
-                    const left = this.memory.unbox(left_op_addr);
-                    const right = this.memory.unbox(right_op_addr);
+                    const left = this.memory.unbox(leftOpAddr);
+                    const right = this.memory.unbox(rightOpAddr);
 
                     if (left > right) {
-                        this.op_stack.push(left_op_addr);
+                        this.opStack.push(leftOpAddr);
                     } else {
-                        this.op_stack.push(right_op_addr);
+                        this.opStack.push(rightOpAddr);
                     }
                     
                 },
@@ -396,21 +396,21 @@ export class Machine {
             },
             min: {
                 func: () => {
-                    const right_op_addr = this.op_stack.pop();
-                    const left_op_addr = this.op_stack.pop();
+                    const rightOpAddr = this.opStack.pop();
+                    const leftOpAddr = this.opStack.pop();
 
                     // check operand types
-                    if (this.memory.get_tag(left_op_addr) !== Tag.Int || this.memory.get_tag(right_op_addr) !== Tag.Int) {
+                    if (this.memory.getTag(leftOpAddr) !== Tag.Int || this.memory.getTag(rightOpAddr) !== Tag.Int) {
                         throw new Error("min() only allowed for integers");
                     }
 
-                    const left = this.memory.unbox(left_op_addr);
-                    const right = this.memory.unbox(right_op_addr);
+                    const left = this.memory.unbox(leftOpAddr);
+                    const right = this.memory.unbox(rightOpAddr);
 
                     if (left < right) {
-                        this.op_stack.push(left_op_addr);
+                        this.opStack.push(leftOpAddr);
                     } else {
-                        this.op_stack.push(right_op_addr);
+                        this.opStack.push(rightOpAddr);
                     }
                 },
                 arity: 2,
@@ -419,23 +419,23 @@ export class Machine {
     }
 
     // assigns an id to each builtin, along with its arity. aids in storage in memory
-    init_builtin_metadata(): any {
+    initBuiltinMetadata(): any {
         let id = 0;
-        this.builtin_metadata = {};
+        this.builtinMetadata = {};
         this.builtins = {};
         
-        for (const key in this.builtin_implementations) {
-            this.builtin_metadata[key] = {
+        for (const key in this.builtinImpls) {
+            this.builtinMetadata[key] = {
                 id: id,
-                arity: this.builtin_implementations[key].arity,
+                arity: this.builtinImpls[key].arity,
             };
 
-            this.builtins[id++] = this.builtin_implementations[key].func;
+            this.builtins[id++] = this.builtinImpls[key].func;
         }
     }
 
-    apply_builtin(builtin_id: number): void {
-        this.op_stack.pop(); // pop closure address
-        this.builtins[builtin_id]();
+    applyBuiltin(builtinId: number): void {
+        this.opStack.pop(); // pop closure address
+        this.builtins[builtinId]();
     }
 }

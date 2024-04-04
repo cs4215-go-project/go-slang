@@ -8,33 +8,33 @@ describe("fundamental Memory methods", () => {
         memory = new Memory(256);
     });
 
-    test("set_word and get_word", () => {
-        memory.set_word(0, 5);
-        expect(memory.get_word(0)).toBe(5);
+    test("setWord and getWord", () => {
+        memory.setWord(0, 5);
+        expect(memory.getWord(0)).toBe(5);
     });
 
-    test("set_tag and get_tag", () => {
-        memory.set_tag(0, Tag.Nil);
-        expect(memory.get_tag(0)).toBe(Tag.Nil);
+    test("setTag and getTag", () => {
+        memory.setTag(0, Tag.Nil);
+        expect(memory.getTag(0)).toBe(Tag.Nil);
     });
 
-    test("set_size and get_size", () => {
-        memory.set_size(0, 2);
-        expect(memory.get_size(0)).toBe(2);
+    test("setSize and getSize", () => {
+        memory.setSize(0, 2);
+        expect(memory.getSize(0)).toBe(2);
     });
 
-    test("set_marked and get_marked", () => {
-        memory.set_marked(0, MarkedStatus.Marked);
-        expect(memory.get_marked(0)).toBe(MarkedStatus.Marked);
+    test("setMarked and getMarked", () => {
+        memory.setMarked(0, MarkedStatus.Marked);
+        expect(memory.getMarked(0)).toBe(MarkedStatus.Marked);
     });
 
-    test("set_child and get_child", () => {
-        memory.set_child(0, 0, 5);
-        expect(memory.get_child(0, 0)).toBe(5);
+    test("setChild and getChild", () => {
+        memory.setChild(0, 0, 5);
+        expect(memory.getChild(0, 0)).toBe(5);
     });
 
-    test("allocate_node", () => {
-        expect(memory.allocate_node(Tag.Nil, 1)).toBe(0);
+    test("allocateNode", () => {
+        expect(memory.allocateNode(Tag.Nil, 1)).toBe(0);
     });
 });
 
@@ -45,12 +45,12 @@ describe("literal allocation", () => {
         memory = new Memory(256);
     });
 
-    test("allocate_literals", () => {
-        memory.allocate_literals();
-        expect(memory.get_tag(NODE_SIZE * 0)).toBe(Tag.Nil);
-        expect(memory.get_tag(NODE_SIZE * 1)).toBe(Tag.Unassigned);
-        expect(memory.get_tag(NODE_SIZE * 2)).toBe(Tag.True);
-        expect(memory.get_tag(NODE_SIZE * 3)).toBe(Tag.False);
+    test("allocate literals", () => {
+        memory.allocateLiterals();
+        expect(memory.getTag(NODE_SIZE * 0)).toBe(Tag.Nil);
+        expect(memory.getTag(NODE_SIZE * 1)).toBe(Tag.Unassigned);
+        expect(memory.getTag(NODE_SIZE * 2)).toBe(Tag.True);
+        expect(memory.getTag(NODE_SIZE * 3)).toBe(Tag.False);
     });
 });
 
@@ -59,21 +59,21 @@ describe ("allocate integer", () => {
 
     beforeEach(() => {
         memory = new Memory(256);
-        memory.allocate_literals();
+        memory.allocateLiterals();
     });
 
-    test("allocate_int", () => {
-        const addr = memory.allocate_int(420);
+    test("allocateInt", () => {
+        const addr = memory.allocateInt(420);
         const expected_addr = NODE_SIZE * memory.literals.length;
         expect(addr).toBe(expected_addr);
 
         // check the node metadata
-        expect(memory.get_tag(addr)).toBe(Tag.Int);
-        expect(memory.get_size(addr)).toBe(2);
-        expect(memory.get_marked(addr)).toBe(MarkedStatus.Unmarked);
+        expect(memory.getTag(addr)).toBe(Tag.Int);
+        expect(memory.getSize(addr)).toBe(2);
+        expect(memory.getMarked(addr)).toBe(MarkedStatus.Unmarked);
 
         // check the payload
-        expect(memory.get_int(addr)).toBe(420);
+        expect(memory.getIntValue(addr)).toBe(420);
     });
 });
 
@@ -82,7 +82,7 @@ describe("get boolean (preallocated)", () => {
 
     beforeEach(() => {
         memory = new Memory(256);
-        memory.allocate_literals();
+        memory.allocateLiterals();
     });
 
     test("get true address", () => {
@@ -98,7 +98,7 @@ describe("non-multiple of NODE_SIZE initialization of memory", () => {
     test("initialize with 255 words", () => {
         expect(() => {
             let memory = new Memory(255);
-        }).toThrowError("num_words must be a multiple of 16");
+        }).toThrowError("numWords must be a multiple of 16");
     });
 });
 
@@ -107,7 +107,7 @@ describe("box", () => {
 
     beforeEach(() => {
         memory = new Memory(256);
-        memory.allocate_literals();
+        memory.allocateLiterals();
     });
 
     test("box boolean", () => {
