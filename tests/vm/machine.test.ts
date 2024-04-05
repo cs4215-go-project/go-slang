@@ -124,7 +124,7 @@ describe("unary expression", () => {
 describe("more complex expressions", () => {
     test("precedence", () => {
         // 2 * 3 + 4
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "LDC", value: 3 },
             { opcode: "BINOP", operator: "*" },
@@ -139,7 +139,7 @@ describe("more complex expressions", () => {
 
     test("parentheses", () => {
         // 2 * (3 + 4)
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "LDC", value: 3 },
             { opcode: "LDC", value: 4 },
@@ -153,7 +153,7 @@ describe("more complex expressions", () => {
 
     test("precedence and parentheses", () => {
         // 2 * (3 + 4) + 5
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "LDC", value: 3 },
             { opcode: "LDC", value: 4 },
@@ -170,7 +170,7 @@ describe("more complex expressions", () => {
 
     test("binary and unary", () => {
         // -2 + 3 * 4
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "UNOP", operator: "-" },
             { opcode: "LDC", value: 3 },
@@ -187,7 +187,7 @@ describe("more complex expressions", () => {
 
 describe("unknown operator", () => {
     test("throws a binop error", () => {
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "LDC", value: 3 },
             { opcode: "BINOP", operator: "_" },
@@ -199,7 +199,7 @@ describe("unknown operator", () => {
     });
 
     test("throws an unop error", () => {
-        const instructions =[
+        const instructions = [
             { opcode: "LDC", value: 2 },
             { opcode: "UNOP", operator: "_" },
             { opcode: "DONE" },
@@ -207,5 +207,75 @@ describe("unknown operator", () => {
         const machine = new Machine(256, instructions, setOutputStub);
 
         expect(() => machine.run()).toThrowError("Unknown unary operator: _");
+    });
+});
+
+describe("variable declaration", () => {
+    test("basic declaration and usage", () => {
+        /*
+         * in func main():
+         *  const x = 2
+         *  x + 3
+         */ 
+        const instructions = [
+            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
+            { opcode: "LDC", value: 2 },
+            { opcode: "ASSIGN", compilePos: [ 1, 0 ] },
+            { opcode: "POP" },
+            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: "LDC", value: 3 },
+            { opcode: "BINOP", operator: "+" },
+            { opcode: "EXIT_SCOPE" },
+            { opcode: "DONE" }
+        ];
+
+        const machine = new Machine(256, instructions, setOutputStub);
+        expect(machine.run()).toBe(5);
+    });
+
+    test("declaration with block scope", () => {
+        /*
+         * in func main():
+         * const x = 20
+         * {
+         *  const y = 33
+         *  x * y
+         * }
+         */
+        const instructions = [
+            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
+            { opcode: "LDC", value: 20 },
+            { opcode: "ASSIGN", compilePos: [ 1, 0 ] },
+            { opcode: "POP" },
+            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
+            { opcode: "LDC", value: 33 },
+            { opcode: "ASSIGN", compilePos: [ 2, 0 ] },
+            { opcode: "POP" },
+            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: "LD", sym: "y", compilePos: [ 2, 0 ] },
+            { opcode: "BINOP", operator: "*" },
+            { opcode: "EXIT_SCOPE" },
+            { opcode: "EXIT_SCOPE" },
+            { opcode: "DONE" }
+        ];
+
+        const machine = new Machine(512, instructions, setOutputStub);
+        expect(machine.run()).toBe(660);
+    });
+
+    test("use of undeclared variable", () => {
+        /*
+         * in func main():
+         *   x
+         */
+        const instructions = [
+            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
+            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: "EXIT_SCOPE" },
+            { opcode: "DONE" }
+        ];
+
+        const machine = new Machine(256, instructions, setOutputStub);
+        expect(() => machine.run()).toThrowError("Variable 'x' used before assignment");
     });
 });

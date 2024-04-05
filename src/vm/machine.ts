@@ -149,7 +149,7 @@ export class Machine {
             case "LD": {
                 const addr = this.memory.getValueFromEnv(this.env, instr.compilePos);
                 if (this.memory.getTag(addr) === Tag.Unassigned) {
-                    throw new Error("Variable '" + instr.sym + "' used before assignment: ");
+                    throw new Error("Variable '" + instr.sym + "' used before assignment");
                 }
                 this.opStack.push(addr);
             }
