@@ -72,10 +72,17 @@ export interface StatementList extends GoNodeBase {
   statements: Statement[];
 }
 
-export type Statement = Declaration | SimpleStatement;
+export type Statement = Declaration | SimpleStatement | IfStatement;
+
+export interface IfStatement extends GoNodeBase {
+  type: "IfStatement";
+  condition: Expression;
+  ifBranch: Block;
+  elseBranch?: Block | IfStatement; // else if are modeled as nested IfStatements
+}
 
 // TODO: add sendStmt, assignment, expressionStmt, shortVarDecl
-export type SimpleStatement = IncDecStatement | ExpressionStatement ;
+export type SimpleStatement = IncDecStatement | ExpressionStatement | Assignment;
 
 export interface IncDecStatement extends GoNodeBase {
   type: "IncDecStatement";
@@ -86,6 +93,12 @@ export interface IncDecStatement extends GoNodeBase {
 export interface ExpressionStatement extends GoNodeBase {
     type: "ExpressionStatement";
     expression: Expression;
+}
+
+export interface Assignment extends GoNodeBase {
+    type: "Assignment";
+    left: Expression[];
+    right: Expression[];
 }
 
 export type Declaration = ConstDecl | TypeDecl | VarDecl;

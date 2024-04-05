@@ -1,4 +1,4 @@
-import { BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, FunctionDecl, GoNodeBase, Identifier, IntegerLiteral, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, FunctionDecl, GoNodeBase, Identifier, IfStatement, IntegerLiteral, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
 type CompileTimeEnvironment = string[][];
 
@@ -124,6 +124,26 @@ const compileComp = {
                 }
             }
         }
+    },
+    "Assignment": (comp: Assignment, cte: CompileTimeEnvironment) => {
+        for (let i = 0; i < comp.left.length; i++) {
+            compileHelper(comp.right[i], cte);
+            instrs[wc++] = {
+                opcode: "ASSIGN",
+                compile_pos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+            }
+        }
+    },
+    "IfStatement": (comp: IfStatement, cte: CompileTimeEnvironment) => {
+        compileHelper(comp.condition, cte);
+        const jof = { opcode: "JOF", target_instr: -1};
+        instrs[wc++] = jof;
+        compileHelper(comp.ifBranch, cte);
+        const goto = { opcode: "GOTO", target_instr: -1};
+        instrs[wc++] = goto;
+        jof.target_instr = wc;
+        compileHelper(comp.elseBranch, cte);
+        goto.target_instr = wc;
     }
 }
 

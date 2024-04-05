@@ -3,7 +3,7 @@ import parseCompileAndRun from "../../src/vm/machine";
 
 const setOutputStub = (output: any) => {};
 
-describe("binary expression", () => {
+describe("end to end", () => {
     test("addition", () => {
         const input = `
 package main
@@ -59,5 +59,77 @@ func main() {
 
         const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(31);
+    })
+
+    test("identifier", () => {
+        const input = `
+package main
+
+const x = 10
+
+func main() {
+    x
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(10);
+    })
+
+     test("conditional false", () => {
+        const input = `
+package main
+
+func main() {
+    // TODO: support 'var x int'
+    var x int = 0
+    if false {
+        x = 20
+    } else {
+        x = 10
+    }
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(10);
+    })
+
+    test("conditional true", () => {
+        const input = `
+package main
+
+func main() {
+    var x int = 0
+    if x == 0 {
+        x = 20
+    } else {
+        x = 10
+    }
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(20);
+    })
+
+    test("conditional else if", () => {
+        const input = `
+package main
+
+func main() {
+    var x int = 0
+    if x < 0 {
+        x = 20
+    } else if x > 0 {
+        x = 10
+    } else {
+        x = 5
+    }
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        expect(result).toBe(5);
     })
 })
