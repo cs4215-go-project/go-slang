@@ -8,7 +8,9 @@ export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 export default function parseCompileAndRun(mem_size: number, input: string, setOutput: (output: any) => void): any {
     try {
         const parsed = parse(input);
+        console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
+        console.log(instructions);
         return new Machine(mem_size, instructions, setOutput).run();
     } catch (e) {
         return e;
@@ -72,7 +74,9 @@ export class Machine {
     run(): any {  
         while (this.instructions[this.pc].opcode !== "DONE") {
             const instr = this.instructions[this.pc++];
+            console.log(instr)
             this.execute(instr);
+            console.log("PC", this.pc)
         }
 
         const program_result_addr = this.op_stack.pop();
@@ -152,10 +156,12 @@ export class Machine {
             }
             case "ASSIGN": {
                 const addr = this.op_stack[this.op_stack.length - 1];
+                console.log("ASSIGN", addr, instr.compile_pos)
                 this.memory.set_value_in_env(this.env, instr.compile_pos, addr);
                 break;
             }
             case "LDF": {
+                console.log("LDF")
                 const closure_addr = this.memory.allocate_closure(instr.arity, instr.skip, this.env);
                 this.op_stack.push(closure_addr);
                 break;
@@ -175,6 +181,7 @@ export class Machine {
 
                 for (let i = arity - 1; i >= 0; i--) {
                     const arg = this.op_stack.pop();
+                    console.log("arg", arg)
                     this.memory.set_child(new_frame_addr, i, arg);
                 }
                 
@@ -184,8 +191,8 @@ export class Machine {
 
                 this.op_stack.pop(); // pop closure address
                 this.env = this.memory.extend_env(new_frame_addr, this.memory.get_closure_env(closure_addr));
-
                 this.pc = new_pc;
+                break;
             }
             case "TAIL_CALL": {
                 const arity = instr.arity;
@@ -209,6 +216,7 @@ export class Machine {
                 this.env = this.memory.extend_env(new_frame_addr, this.memory.get_closure_env(closure_addr));
 
                 this.pc = new_pc;
+                break
             }
             case "RESET": {
                 const top_frame_addr = this.runtime_stack.pop();

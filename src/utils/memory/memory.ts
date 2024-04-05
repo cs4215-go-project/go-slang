@@ -333,7 +333,7 @@ export default class Memory {
         this.set_child(frame_addr, value_index, value);
     }
 
-    extend_env(env_addr: number, frame_addr: number): number {
+    extend_env(frame_addr: number, env_addr: number): number {
         const old_size: number = this.get_size(env_addr);
         const new_env_addr = this.allocate_node(Tag.Environment, old_size + 1);
 
@@ -358,6 +358,7 @@ export default class Memory {
 
     // allocates an object in memory and returns its address
     box(obj: any): number {
+        console.log(obj)
         if (typeof obj === "boolean") {
             return obj ? this.literals[Tag.True] : this.literals[Tag.False];
         } else if (obj === null) {
@@ -373,6 +374,7 @@ export default class Memory {
     // given an address, first interprets the tag, then unboxes and returns the value
     unbox(addr: number): any {
         const tag: Tag = this.get_tag(addr);
+        console.log(tag, addr)
         switch (tag) {
             case Tag.Nil:
                 return null;

@@ -132,4 +132,36 @@ func main() {
         const result = parseCompileAndRun(512, input, setOutputStub);
         expect(result).toBe(5);
     })
+
+    test("func", () => {
+        const input = `
+package main
+
+func main() {
+    f := func(x, y int) int { return x + y }
+    f(4, 3)
+}
+        `
+
+        const result = parseCompileAndRun(512, input, setOutputStub);
+        console.log(result)
+        expect(result).toBe(7);
+    })
+
+    test("loop", () => {
+            const input = `
+    package main
+
+    func main() {
+        var i int = 0
+        for i < 3 {
+            i++
+        }
+        i
+    }
+            `
+
+            const result = parseCompileAndRun(2048, input, setOutputStub);
+            expect(result).toBe(3);
+        })
 })

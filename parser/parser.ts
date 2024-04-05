@@ -1,6 +1,7 @@
 import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4";
 import GoLexer from "./gen/GoLexer";
 import GoParser, {
+  ArgumentsContext,
   AssignmentContext,
   BasicLitContext,
   BlockContext,
@@ -10,15 +11,20 @@ import GoParser, {
   ExpressionContext,
   ExpressionListContext,
   ExpressionStmtContext,
+  ForStmtContext,
   FunctionDeclContext,
+  FunctionLitContext,
   IdentifierListContext,
   IfStmtContext,
+  IncDecStmtContext,
   LiteralContext,
   OperandContext,
   ParameterDeclContext,
   ParametersContext,
   PrimaryExprContext,
   ResultContext,
+  ReturnStmtContext,
+  ShortVarDeclContext,
   SignatureContext,
   SimpleStmtContext,
   SourceFileContext,
@@ -38,17 +44,21 @@ import {
   Expression,
   ExpressionList,
   ExpressionStatement,
+  ForStatement,
   FunctionDecl,
+  FunctionLiteral,
   GoNodeBase,
   Identifier,
   IdentifierList,
   IfStatement,
+  IncDecStatement,
   Literal,
   Operand,
   ParameterDecl,
   Parameters,
   Position,
   Result,
+  ReturnStatement,
   Signature,
   SourceFile,
   SourceLevelDeclaration,
@@ -109,6 +119,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   // we dont support generics
   visitFunctionDecl = (ctx: FunctionDeclContext): FunctionDecl => {
+    console.log(ctx.getText());
     const functionDecl: FunctionDecl = {
       type: "FunctionDecl",
       //   position: getPosition(ctx),
@@ -154,10 +165,31 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitSimpleStmt(ctx.simpleStmt());
     } else if (ctx.ifStmt() != null) {
       return this.visitIfStmt(ctx.ifStmt());
+    } else if (ctx.returnStmt() != null) {
+      return this.visitReturnStmt(ctx.returnStmt());
+    } else if (ctx.forStmt() != null) {
+      return this.visitForStmt(ctx.forStmt());
     }
 
     throw new Error("Not implemented");
   };
+
+  visitForStmt = (ctx: ForStmtContext): ForStatement => {
+    return {
+      type: "ForStatement",
+      //   position: getPosition(ctx),
+      condition: this.visitExpression(ctx.expression()),
+      body: this.visitBlock(ctx.block()),
+    };
+  }
+
+  visitReturnStmt = (ctx: ReturnStmtContext): ReturnStatement => {
+    return {
+      type: "ReturnStatement",
+      //   position: getPosition(ctx),
+      values: this.visitExpressionList(ctx.expressionList()).expressions,
+    };
+  }
 
   visitIfStmt = (ctx: IfStmtContext): IfStatement => {
     // we don't support if x := f(); x < y { ... }
@@ -184,10 +216,32 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitExpressionStmt(ctx.expressionStmt());
     } else if (ctx.assignment() != null) {
       return this.visitAssignment(ctx.assignment());
+    } else if (ctx.shortVarDecl() != null) {
+      return this.visitShortVarDecl(ctx.shortVarDecl());
+    } else if (ctx.incDecStmt() != null) {
+      return this.visitIncDecStmt(ctx.incDecStmt());
     }
 
     throw new Error("Not implemented");
   };
+
+  visitIncDecStmt = (ctx: IncDecStmtContext): IncDecStatement => {
+    return {
+      type: "IncDecStatement",
+      //   position: getPosition(ctx),
+      expression: this.visitExpression(ctx.expression()),
+      operator: ctx.PLUS_PLUS() ? "++" : "--",
+    };
+  }
+
+  visitShortVarDecl = (ctx: ShortVarDeclContext): Assignment => {
+    return {
+      type: "Assignment",
+      //   position: getPosition(ctx),
+      left: this.visitIdentifierList(ctx.identifierList()).identifiers,
+      right: this.visitExpressionList(ctx.expressionList()).expressions,
+    }
+  }
 
   visitAssignment = (ctx: AssignmentContext): Assignment => {
     return {
@@ -207,7 +261,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
-    // console.log(ctx.getText());
+    console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -319,7 +373,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    // console.log(ctx.getText());
+    console.log(ctx.getText());
     if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
@@ -327,9 +381,20 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       };
     } else if (ctx.operand() != null) {
       return this.visitOperand(ctx.operand());
+    } else if (ctx.primaryExpr() !== null && ctx.arguments() !== null) {
+      return {
+        type: "FunctionCall",
+        //   position: getPosition(ctx),
+        func: this.visitPrimaryExpr(ctx.primaryExpr()) as Identifier,
+        args: this.visitArguments(ctx.arguments()).expressions,
+      };
     }
     throw new Error("Not implemented");
   };
+
+  visitArguments = (ctx: ArgumentsContext): ExpressionList => {
+    return this.visitExpressionList(ctx.expressionList());
+  }
 
   visitSignature = (ctx: SignatureContext): Signature => {
     return {
@@ -384,7 +449,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     return {
       type: "IdentifierList",
       //   position: getPosition(ctx),
-      identifiers: ctx.IDENTIFIER_list().map((id) => id.getText()),
+      identifiers: ctx.IDENTIFIER_list().map((id) => ({
+        type: "Identifier",
+        name: id.getText(),
+      })),
     };
   };
 
@@ -477,7 +545,20 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   visitLiteral = (ctx: LiteralContext): Literal => {
     if (ctx.basicLit() != null) {
       return this.visitBasicLit(ctx.basicLit());
+    } else if (ctx.functionLit() != null) {
+      return this.visitFunctionLit(ctx.functionLit());
     }
+
+    throw new Error("Not implemented");
+  }
+
+  visitFunctionLit = (ctx: FunctionLitContext): FunctionLiteral => {
+    return {
+      type: "FunctionLiteral",
+      //   position: getPosition(ctx),
+      signature: this.visitSignature(ctx.signature()),
+      body: this.visitBlock(ctx.block()),
+    };
   }
 
   visitBasicLit = (ctx: BasicLitContext): BasicLiteral => {
