@@ -63,13 +63,13 @@ export class Machine {
         this.initBuiltinImpls();
         this.initBuiltinMetadata();     
         const builtinFrameAddr = this.memory.allocateBuiltinsFrame(this.builtinMetadata);
-        this.env = this.memory.extendEnv(builtinFrameAddr, this.env);
+        this.env = this.memory.extendEnv(this.env, builtinFrameAddr);
 
         // set heap bottom after allocating literals and builtins
         this.memory.heapBottom = this.memory.freeIndex;
 
         // done allocating roots, set roots for garbage collection
-        this.memory.machineRoots = [...this.opStack, ...this.runtimeStack, this.env];
+        this.memory.machineRoots = [this.opStack, this.runtimeStack, [this.env]];
     }
 
     run(): any {  
@@ -134,7 +134,7 @@ export class Machine {
                 this.runtimeStack.push(blockframeAddr);
 
                 const newFrameAddr = this.memory.allocateFrame(instr.numDeclarations);
-                this.env = this.memory.extendEnv(newFrameAddr, this.env);
+                this.env = this.memory.extendEnv(this.env, newFrameAddr);
 
                 for (let i = 0; i < instr.numDeclarations; i++) {
                     this.memory.setChild(newFrameAddr, i, this.memory.literals[Tag.Unassigned]); // unassigned
@@ -186,7 +186,7 @@ export class Machine {
                 this.runtimeStack.push(callframeAddr);
 
                 this.opStack.pop(); // pop closure address
-                this.env = this.memory.extendEnv(newFrameAddr, this.memory.getClosureEnv(closureAddr));
+                this.env = this.memory.extendEnv(this.memory.getClosureEnv(closureAddr), newFrameAddr);
 
                 this.pc = newPc;
             }
@@ -209,7 +209,7 @@ export class Machine {
                 }
 
                 this.opStack.pop(); // pop closure address
-                this.env = this.memory.extendEnv(newFrameAddr, this.memory.getClosureEnv(closureAddr));
+                this.env = this.memory.extendEnv(this.memory.getClosureEnv(closureAddr), newFrameAddr);
 
                 this.pc = newPc;
             }

@@ -68,7 +68,7 @@ export default class Memory {
     public freeIndex: number;
     public heapBottom: number;
     public allocating: number[];
-    public machineRoots: number[];
+    public machineRoots: number[][];
 
     constructor(numWords: number) {
         // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
@@ -419,7 +419,7 @@ export default class Memory {
      * Mark sweep garbage collection functions
      */
     markSweep() {
-        const allRoots: number[] = [...this.machineRoots, ...this.allocating];
+        const allRoots: number[] = [...this.machineRoots.flat(), ...this.allocating];
         for (const root of allRoots) {
             this.mark(root);
         }
@@ -428,7 +428,7 @@ export default class Memory {
     }
 
     mark(addr: number) {
-        if (addr < this.heapBottom || addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
+        if (addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
             return;
         }
         
@@ -448,7 +448,7 @@ export default class Memory {
             } else {
                 this.free(i);
             }
-            i += WORD_SIZE;
+            i += NODE_SIZE;
         }    
     }
 
