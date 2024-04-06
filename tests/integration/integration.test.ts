@@ -4,34 +4,34 @@ import parseCompileAndRun from "../../src/vm/machine";
 const setOutputStub = (output: any) => {};
 
 describe("end to end", () => {
-    test("addition", () => {
-        const input = `
+  test("addition", () => {
+    const input = `
 package main
 
 func main() {
     1+5*10
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(51);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(51);
+  });
 
-    test("-10", () => {
-        const input = `
+  test("-10", () => {
+    const input = `
 package main
 
 func main() {
     -10
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(-10);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(-10);
+  });
 
-    test("const", () => {
-        const input = `
+  test("const", () => {
+    const input = `
 package main
 
 const x, y = 10, 20
@@ -39,14 +39,14 @@ const x, y = 10, 20
 func main() {
     x + y
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(30);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(30);
+  });
 
-    test("var", () => {
-        const input = `
+  test("var", () => {
+    const input = `
 package main
 
 const x, y = 10, 20
@@ -55,14 +55,14 @@ func main() {
     var z int = 1
     x + y + z
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(31);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(31);
+  });
 
-    test("identifier", () => {
-        const input = `
+  test("identifier", () => {
+    const input = `
 package main
 
 const x = 10
@@ -70,14 +70,14 @@ const x = 10
 func main() {
     x
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(10);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(10);
+  });
 
-     test("conditional false", () => {
-        const input = `
+  test("conditional false", () => {
+    const input = `
 package main
 
 func main() {
@@ -89,14 +89,14 @@ func main() {
         x = 10
     }
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(10);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(10);
+  });
 
-    test("conditional true", () => {
-        const input = `
+  test("conditional true", () => {
+    const input = `
 package main
 
 func main() {
@@ -107,14 +107,14 @@ func main() {
         x = 10
     }
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(20);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(20);
+  });
 
-    test("conditional else if", () => {
-        const input = `
+  test("conditional else if", () => {
+    const input = `
 package main
 
 func main() {
@@ -127,29 +127,47 @@ func main() {
         x = 5
     }
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        expect(result).toBe(5);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(5);
+  });
 
-    test("func", () => {
-        const input = `
+  test("func", () => {
+    const input = `
 package main
 
 func main() {
     f := func(x, y int) int { return x + y }
     f(4, 3)
 }
-        `
+        `;
 
-        const result = parseCompileAndRun(512, input, setOutputStub);
-        console.log(result)
-        expect(result).toBe(7);
-    })
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(7);
+  });
 
-    test("loop", () => {
-            const input = `
+  test("func decl", () => {
+    const input = `
+package main
+
+func add(x, y int) int {
+    return x + y
+}
+
+func main() {
+    return add(4, 3)
+}
+        `;
+
+    const result = parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(7);
+  });
+
+  test("loop", () => {
+    const input = `
     package main
 
     func main() {
@@ -159,9 +177,54 @@ func main() {
         }
         i
     }
-            `
+            `;
 
-            const result = parseCompileAndRun(2048, input, setOutputStub);
-            expect(result).toBe(3);
-        })
-})
+    const result = parseCompileAndRun(2048, input, setOutputStub);
+    expect(result).toBe(3);
+  });
+
+  test("go func", () => {
+    const input = `
+    package main
+
+    func main() {
+        ch := make(chan int, 2)
+        go func() {
+            ch <- 1
+        }()
+        <-ch
+    }
+            `;
+
+    const result = parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(1);
+  });
+
+  test("builtin max", () => {
+    const input = `
+    package main
+
+    func main() {
+        max(2, 3)
+    }
+            `;
+
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(3);
+  });
+
+  test("builtin min", () => {
+    const input = `
+    package main
+
+    func main() {
+        min(2, 3)
+        10
+    }
+            `;
+
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    expect(result).toBe(10);
+  });
+});
