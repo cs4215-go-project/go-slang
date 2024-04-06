@@ -1,8 +1,11 @@
-import { BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, FunctionDecl, GoNodeBase, Identifier, IntegerLiteral, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, ConstSpec, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+
+const builtins = ["println", "panic", "sleep", "make", "max", "min", ]
 
 type CompileTimeEnvironment = string[][];
 
 function compileTimeEnvironmentPosition(cte: CompileTimeEnvironment, identifier: string) {
+    console.log(cte)
     let frameIndex = cte.length;
     while (valueIndex(cte[--frameIndex], identifier) === -1) {}
     return [frameIndex, valueIndex(cte[frameIndex], identifier)];
@@ -19,13 +22,18 @@ function valueIndex(frame: string[], identifier: string) {
 function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
     let locals = [];
     for (const decl of comp) {
-        if (decl.type === "ConstDecl") {
+        console.log(decl, decl.type)
+        if (decl.type === "ConstDecl" || decl.type === "VarDecl") {
             for (const spec of (decl as ConstDecl).specs) {
-                locals = locals.concat(spec.identifierList.identifiers);
+                locals = locals.concat(spec.identifierList.identifiers.map((id) => id.name));
             }
-        } else if (decl.type === "VarDecl") {
-            for (const spec of (decl as VarDecl).specs) {
-                locals = locals.concat(spec.identifierList.identifiers);
+        } else if (decl.type === "FunctionDecl") {
+            locals.push((decl as FunctionDecl).name);
+        } else if (decl.type === "DeclareAssign") {
+            for (const expr of (decl as DeclareAssign).left) {
+                if (expr.type === "Identifier") {
+                    locals.push((expr as Identifier).name)
+                }
             }
         }
     }
@@ -51,7 +59,6 @@ const compileComp = {
 		instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: locals.length };
         let first = true;
         // sequence of declarations
-        console.log(locals)
         comp.declarations.forEach((decl) => {
             if (!first) {
                 instrs[wc++] = { opcode: "POP" };
@@ -59,27 +66,85 @@ const compileComp = {
             }
             compileHelper(decl, compileTimeEnvironmentExtend(locals, cte))
         });
+        
+
+        instrs[wc++] = { opcode: "LD", compilePos: [1, locals.indexOf("main")] };
+        instrs[wc++] = { opcode: "START_GOROUTINE" };
+        instrs[wc++] = { opcode: "CALL", arity: 0 };
+        instrs[wc++] = { opcode: "STOP_GOROUTINE" };
+
 		instrs[wc++] = { opcode: "EXIT_SCOPE" };
     },
     "FunctionDecl": (comp: FunctionDecl, cte: CompileTimeEnvironment) => {
-        if (comp.name !== "main") {
-            throw new Error("Only main function is supported for now");
+        compileHelper({
+            type: "ConstDecl", specs: [
+                {
+                    type: "ConstSpec",
+                    identifierList: {
+                        type: "IdentifierList", 
+                        identifiers: [ 
+                            {type: "Identifier", name: comp.name}
+                        ]
+                    },
+                    expressionList: {
+                        type: "ExpressionList", 
+                        expressions: [
+                            {type:"FunctionLiteral", signature: comp.signature, body: comp.body} as FunctionLiteral
+                        ]
+                        }
+                }
+        ]} as ConstDecl, cte)
+    },
+    "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
+        compileHelper(comp.func, cte);
+        for (const arg of comp.args) {
+            compileHelper(arg, cte);
         }
-
-        // TODO: assign arguments to variables in the environment
-        compileHelper(comp.body, cte);
+        instrs[wc++] = { opcode: "CALL", arity: comp.args.length };
+    },
+    "FunctionLiteral": (comp: FunctionLiteral, cte: CompileTimeEnvironment) => {
+        const arity = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
+        instrs[wc++] = { opcode: "LDF", arity: arity, skip: wc+1 };
+        const goto = { opcode: "GOTO", targetInstr: undefined };
+        instrs[wc++] = goto;
+        const params = []
+        for (const param of comp.signature.parameters.parameterDecls) {
+            for (const id of param.identifierList.identifiers) {
+                params.push(id.name)
+            }
+        }
+        compileHelper(comp.body, compileTimeEnvironmentExtend(params, cte));
+        instrs[wc++] = { opcode: "LDC", value: undefined };
+        instrs[wc++] = {opcode: 'RESET'}
+        goto.targetInstr = wc;
     },
     "Block": (comp: Block, cte: CompileTimeEnvironment) => {
+        console.log(comp, cte)
         const locals = scanDeclarations(comp.statementList.statements);
-        for (let i = 0; i < comp.statementList.statements.length; i++) {
-            compileHelper(comp.statementList.statements[i], compileTimeEnvironmentExtend(locals, cte));
+        console.log(locals)
+		instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: locals.length };
+        if (comp.statementList.statements.length === 0) {
+            instrs[wc++] = { opcode: "LDC", value: undefined};
+            return
         }
+        for (let i = 0; i < comp.statementList.statements.length; i++) {
+            if (i !== 0) {
+                instrs[wc++] = { opcode: "POP" };
+            }
+            compileHelper(comp.statementList.statements[i], compileTimeEnvironmentExtend(locals, cte))
+        }
+        instrs[wc++] = { opcode: "EXIT_SCOPE" };
     },
     "Identifier": (comp: Identifier, cte: CompileTimeEnvironment) => {
+        if (builtins.includes(comp.name)) {
+            instrs[wc++] = { opcode: "LD", compilePos: [ 0, builtins.indexOf(comp.name) ] }
+            return
+        }
+
         // store precomputed position information in LD instruction
+        console.log(cte)
         instrs[wc++] = {
             opcode: "LD",
-            sym: comp.name,
             compilePos: compileTimeEnvironmentPosition(cte, comp.name)
         }
     },
@@ -108,7 +173,7 @@ const compileComp = {
                 compileHelper(spec.expressionList.expressions[i], cte);
                 instrs[wc++] = {
                     opcode: "ASSIGN",
-                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
+                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i].name)
                 }
             }
         }
@@ -120,14 +185,95 @@ const compileComp = {
                 compileHelper(spec.expressionList.expressions[i], cte);
                 instrs[wc++] = {
                     opcode: "ASSIGN",
-                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
+                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i].name)
                 }
             }
         }
+    },
+    "Assignment": (comp: Assignment, cte: CompileTimeEnvironment) => {
+        for (let i = 0; i < comp.left.length; i++) {
+            compileHelper(comp.right[i], cte);
+            console.log("Assignment", (comp.left[i] as Identifier).name, compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name))
+            instrs[wc++] = {
+                opcode: "ASSIGN",
+                compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+            }
+        }
+    },
+    "DeclareAssign": (comp: DeclareAssign, cte: CompileTimeEnvironment) => {
+        for (let i = 0; i < comp.left.length; i++) {
+            compileHelper(comp.right[i], cte);
+            instrs[wc++] = {
+                opcode: "ASSIGN",
+                compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+            }
+        }
+    },
+    "IfStatement": (comp: IfStatement, cte: CompileTimeEnvironment) => {
+        compileHelper(comp.condition, cte);
+        const jof = { opcode: "JOF", targetInstr: undefined};
+        instrs[wc++] = jof;
+        compileHelper(comp.ifBranch, cte);
+        const goto = { opcode: "GOTO", targetInstr: undefined};
+        instrs[wc++] = goto;
+        jof.targetInstr = wc;
+        compileHelper(comp.elseBranch, cte);
+        goto.targetInstr = wc;
+    },
+    "ReturnStatement": (comp: ReturnStatement, cte: CompileTimeEnvironment) => {
+        // TODO: support multiple return statements
+        if (comp.values.length > 1) {
+            throw new Error("Multiple return values not supported yet")
+        }
+        compileHelper(comp.values[0], cte);
+        // TODO: support tail call optimization
+        instrs[wc++] = { opcode: "RESET" };
+    },
+    "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
+        const loopStart = wc;
+        compileHelper(comp.condition, cte);
+        const jof = { opcode: "JOF", targetInstr: undefined };
+        instrs[wc++] = jof;
+        compileHelper(comp.body, cte);
+        instrs[wc++] = { opcode: "POP" };
+        instrs[wc++] = { opcode: "GOTO", targetInstr: loopStart };
+        jof.targetInstr = wc;
+        instrs[wc++] = { opcode: "LDC", value: undefined }
+    },
+    "IncDecStatement": (comp: IncDecStatement, cte: CompileTimeEnvironment) => {
+        compileHelper(comp.expression, cte);
+        instrs[wc++] = { opcode: "LDC", value: 1 };
+        instrs[wc++] = { opcode: "BINOP", operator: comp.operator === "++" ? "+" : "-" };
+        instrs[wc++] = {
+            opcode: "ASSIGN",
+            compilePos: compileTimeEnvironmentPosition(cte, (comp.expression as Identifier).name)
+        }
+    },
+    "GoStatement": (comp: GoStatement, cte: CompileTimeEnvironment) => {
+        instrs[wc++] = { opcode: "START_GOROUTINE" };
+        compileHelper(comp.expression, cte);
+        instrs[wc++] = { opcode: "STOP_GOROUTINE" };
+    },
+    "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
+        compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
+        if (comp.dataType === "chanint") {
+            instrs[wc++] = { opcode: "LDC", value: ChanType.INT };
+        } else if (comp.dataType === "chanbool") {
+            instrs[wc++] = { opcode: "LDC", value: ChanType.BOOL };
+        }
+        instrs[wc++] = { opcode: "LDC", value: comp.capacity };
+    },
+    "SendStatement": (comp: SendStatement, cte: CompileTimeEnvironment) => {
     }
 }
 
+enum ChanType {
+    INT,
+    BOOL
+}
+
 export function compileHelper (node: GoNodeBase, cte: CompileTimeEnvironment) {
+    console.log(node.type)
     compileComp[node.type](node, cte);
 }
 

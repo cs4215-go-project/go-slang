@@ -384,6 +384,7 @@ export default class Memory {
 
     // allocates an object in memory and returns its address
     box(obj: any): number {
+        console.log(obj)
         if (typeof obj === "boolean") {
             return obj ? this.literals[Tag.True] : this.literals[Tag.False];
         } else if (obj === null) {

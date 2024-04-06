@@ -113,7 +113,10 @@ describe("unary expression", () => {
                 expression: {
                   type: "UnaryExpr",
                   operator: op,
-                  expr: {
+                  expr: type === "Identifier" ? {
+                    type: type,
+                    name: operand,
+                  } : {
                     type: type,
                     value: operand,
                   },
@@ -148,16 +151,16 @@ func main() {
     expect(parse(input)).toEqual(expected("!", "BooleanLiteral", false));
   });
 
-//   test("receive", () => {
-//     const input = `
-// package main
+  test("receive", () => {
+    const input = `
+package main
 
-// func main() {
-//     <-ch
-// }
-// `;
-//     expect(parse(input)).toEqual(expected("<-", "ch"));
-//   });
+func main() {
+    <-ch
+}
+`;
+    expect(parse(input)).toEqual(expected("<-", "Identifier", "ch"));
+  });
 });
 
 describe("constant declaration", () => {

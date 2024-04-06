@@ -8,7 +8,9 @@ export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 export default function parseCompileAndRun(memSize: number, input: string, setOutput: (output: any) => void): any {
     try {
         const parsed = parse(input);
+        console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
+        console.log(instructions);
         return new Machine(memSize, instructions, setOutput).run();
     } catch (e) {
         return e;
@@ -75,7 +77,9 @@ export class Machine {
     run(): any {  
         while (this.instructions[this.pc].opcode !== "DONE") {
             const instr = this.instructions[this.pc++];
+            console.log(this.pc, instr)
             this.execute(instr);
+            console.log("next",this.pc)
         }
 
         const resultAddress = this.opStack.pop();
@@ -83,6 +87,7 @@ export class Machine {
     }
 
     execute(instr: Instruction): void {
+        console.log("instr", instr)
         switch (instr.opcode) {
             case "LDC": {
                 const addr = this.memory.box(instr.value);
@@ -152,6 +157,7 @@ export class Machine {
                     throw new Error("Variable '" + instr.sym + "' used before assignment");
                 }
                 this.opStack.push(addr);
+                break
             }
             case "ASSIGN": {
                 const addr = this.opStack[this.opStack.length - 1];
@@ -189,6 +195,7 @@ export class Machine {
                 this.env = this.memory.extendEnv(this.memory.getClosureEnv(closureAddr), newFrameAddr);
 
                 this.pc = newPc;
+                break;
             }
             case "TAIL_CALL": {
                 const arity = instr.arity;
@@ -212,6 +219,7 @@ export class Machine {
                 this.env = this.memory.extendEnv(this.memory.getClosureEnv(closureAddr), newFrameAddr);
 
                 this.pc = newPc;
+                break;
             }
             case "RESET": {
                 const topFrameAddr = this.runtimeStack.pop();
@@ -222,6 +230,14 @@ export class Machine {
                     this.pc--;
                 }
                 break;
+            }
+            case "START_GOROUTINE": {
+                console.log("START_GOROUTINE")
+                break
+            }
+            case "STOP_GOROUTINE": {
+                console.log("STOP_GOROUTINE")
+                break
             }
             default:
                 throw new Error("Unknown opcode: " + instr.opcode);
@@ -319,6 +335,9 @@ export class Machine {
                     throw new Error(`Operator ${op} cannot be applied to type ${typeof operand}`);
                 }
                 return !operand;
+            case "<-":
+                // TODO
+                throw new Error("Unimplemented unary operator: <-");
             default:
                 throw new Error("Unknown unary operator: " + op);
         }
@@ -332,6 +351,7 @@ export class Machine {
                     const valueToPrint = this.memory.unbox(addr);
                     this.programOutput.push(String(valueToPrint));
                     this.setOutput(this.programOutput);
+                    this.opStack.pop(); // pop closure address
                 },
                 arity: 1,
             },
@@ -352,7 +372,9 @@ export class Machine {
                 arity: 1,
             },
             make: {
-                func: () =>{
+                func: () => {
+                    // 0 = chan int, 1 = chan bool
+
                     // only for Go channels
                     const typeAddr = this.opStack.pop();
                     const type = this.memory.unbox(typeAddr);
@@ -387,6 +409,7 @@ export class Machine {
 
                     const left = this.memory.unbox(leftOpAddr);
                     const right = this.memory.unbox(rightOpAddr);
+                    this.opStack.pop(); // pop closure address
 
                     if (left > right) {
                         this.opStack.push(leftOpAddr);
@@ -409,6 +432,7 @@ export class Machine {
 
                     const left = this.memory.unbox(leftOpAddr);
                     const right = this.memory.unbox(rightOpAddr);
+                    this.opStack.pop(); // pop closure address
 
                     if (left < right) {
                         this.opStack.push(leftOpAddr);
@@ -438,7 +462,6 @@ export class Machine {
     }
 
     applyBuiltin(builtinId: number): void {
-        this.opStack.pop(); // pop closure address
         this.builtins[builtinId]();
     }
 }

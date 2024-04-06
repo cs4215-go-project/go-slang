@@ -53,7 +53,7 @@ export interface Parameters extends GoNodeBase {
 
 export interface IdentifierList extends GoNodeBase {
     type: "IdentifierList";
-    identifiers: string[];
+    identifiers: Identifier[];
 }
 
 export interface Result extends GoNodeBase {
@@ -72,20 +72,66 @@ export interface StatementList extends GoNodeBase {
   statements: Statement[];
 }
 
-export type Statement = Declaration | SimpleStatement;
+export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | GoStatement | SendStatement | DeclareAssign;
 
-// TODO: add sendStmt, assignment, expressionStmt, shortVarDecl
-export type SimpleStatement = IncDecStatement | ExpressionStatement ;
+export interface SendStatement extends GoNodeBase {
+  type: "SendStatement";
+  channel: Expression;
+  value: Expression;
+}
+
+export interface GoStatement extends GoNodeBase {
+  type: "GoStatement";
+  expression: Expression;
+}
+
+export interface ReturnStatement extends GoNodeBase {
+  type: "ReturnStatement";
+  values: Expression[];
+}
+
+export interface ForStatement extends GoNodeBase {
+  type: "ForStatement";
+  // init: SimpleStatement;
+  condition: Expression;
+  // post: SimpleStatement;
+  body: Block;
+}
+
+
+export interface IfStatement extends GoNodeBase {
+  type: "IfStatement";
+  condition: Expression;
+  ifBranch: Block;
+  elseBranch?: Block | IfStatement; // else if are modeled as nested IfStatements
+}
+
+// TODO: add sendStmt, assignment, expressionStmt
+export type SimpleStatement = IncDecStatement | ExpressionStatement | Assignment;
 
 export interface IncDecStatement extends GoNodeBase {
   type: "IncDecStatement";
-  identifier: string;
+  expression: Expression;
   operator: "++" | "--";
 }
 
 export interface ExpressionStatement extends GoNodeBase {
     type: "ExpressionStatement";
     expression: Expression;
+}
+
+// =
+export interface Assignment extends GoNodeBase {
+    type: "Assignment";
+    left: Expression[];
+    right: Expression[];
+}
+
+// :=
+export interface DeclareAssign extends GoNodeBase {
+  type: "DeclareAssign";
+  left: Expression[];
+    right: Expression[];
 }
 
 export type Declaration = ConstDecl | TypeDecl | VarDecl;
@@ -125,11 +171,29 @@ export interface VarSpec extends GoNodeBase {
 }
 
 // TODO: add function call
-export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal;
+export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | FunctionCall | MakeExpression;
 
+// only support make chan
+export interface MakeExpression extends GoNodeBase {
+  type: "MakeExpression";
+  dataType: DataType;
+  capacity: number;
+}
+
+export interface FunctionCall extends GoNodeBase {
+  type: "FunctionCall";
+  func: Identifier;
+  args: Expression[];
+}
 
 // TODO: add CompositeLiteral (slice, struct, map, etc) | FunctionLiteral (lambda functions, i.e. add := func(a, b int) int {})
-export type Literal = BasicLiteral;
+export type Literal = BasicLiteral | FunctionLiteral;
+
+export interface FunctionLiteral extends GoNodeBase {
+  type: "FunctionLiteral";
+  signature: Signature;
+  body: Block;
+}
 
 export type Operand = Literal | Identifier | Expression;
 
