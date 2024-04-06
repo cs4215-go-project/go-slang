@@ -1,4 +1,6 @@
-import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, Declaration, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, Identifier, IfStatement, IncDecStatement, IntegerLiteral, ReturnStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, ConstSpec, Declaration, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+
+const builtins = ["println", "panic", "sleep", "make", "max", "min", ]
 
 type CompileTimeEnvironment = string[][];
 
@@ -57,10 +59,11 @@ const globalCompileFrame = [] // TODO: add built-in functions
 const compileComp = {
     "SourceFile": (comp: SourceFile, cte: CompileTimeEnvironment) => {
         const locals = scanDeclarations(comp.declarations);
-		instrs[wc++] = { opcode: "ENTER_SCOPE", num_declarations: locals.length };
+        instrs[wc++] = { opcode: "ENTER_SCOPE", num_declarations: locals.length };
+
+        
         let first = true;
         // sequence of declarations
-        console.log(locals)
         comp.declarations.forEach((decl) => {
             if (!first) {
                 instrs[wc++] = { opcode: "POP" };
@@ -68,17 +71,34 @@ const compileComp = {
             }
             compileHelper(decl, compileTimeEnvironmentExtend(locals, cte))
         });
+        
+
+        instrs[wc++] = { opcode: "LD", compile_pos: [1, locals.indexOf("main")] };
+        instrs[wc++] = { opcode: "START_GOROUTINE" };
+        instrs[wc++] = { opcode: "CALL", arity: 0 };
+        instrs[wc++] = { opcode: "STOP_GOROUTINE" };
+
 		instrs[wc++] = { opcode: "EXIT_SCOPE" };
     },
     "FunctionDecl": (comp: FunctionDecl, cte: CompileTimeEnvironment) => {
-        if (comp.name === "main") {
-            // put main function at the start of the program?
-            compileHelper(comp.body, cte);
-            return
-        }
-
-        // TODO: assign arguments to variables in the environment
-        // assign to a variable
+        compileHelper({
+            type: "ConstDecl", specs: [
+                {
+                    type: "ConstSpec",
+                    identifierList: {
+                        type: "IdentifierList", 
+                        identifiers: [ 
+                            {type: "Identifier", name: comp.name}
+                        ]
+                    },
+                    expressionList: {
+                        type: "ExpressionList", 
+                        expressions: [
+                            {type:"FunctionLiteral", signature: comp.signature, body: comp.body} as FunctionLiteral
+                        ]
+                        }
+                }
+        ]} as ConstDecl, cte)
     },
     "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
         compileHelper(comp.func, cte);
@@ -121,6 +141,11 @@ const compileComp = {
         instrs[wc++] = { opcode: "EXIT_SCOPE" };
     },
     "Identifier": (comp: Identifier, cte: CompileTimeEnvironment) => {
+        if (builtins.includes(comp.name)) {
+            instrs[wc++] = { opcode: "LD", compile_pos: [ 0, builtins.indexOf(comp.name) ] }
+            return
+        }
+
         // store precomputed position information in LD instruction
         console.log(cte)
         instrs[wc++] = {
@@ -219,7 +244,28 @@ const compileComp = {
             opcode: "ASSIGN",
             compile_pos: compileTimeEnvironmentPosition(cte, (comp.expression as Identifier).name)
         }
+    },
+    "GoStatement": (comp: GoStatement, cte: CompileTimeEnvironment) => {
+        instrs[wc++] = { opcode: "START_GOROUTINE" };
+        compileHelper(comp.expression, cte);
+        instrs[wc++] = { opcode: "STOP_GOROUTINE" };
+    },
+    "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
+        compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
+        if (comp.dataType === "chanint") {
+            instrs[wc++] = { opcode: "LDC", value: ChanType.INT };
+        } else if (comp.dataType === "chanbool") {
+            instrs[wc++] = { opcode: "LDC", value: ChanType.BOOL };
+        }
+        instrs[wc++] = { opcode: "LDC", value: comp.capacity };
+    },
+    "SendStatement": (comp: SendStatement, cte: CompileTimeEnvironment) => {
     }
+}
+
+enum ChanType {
+    INT,
+    BOOL
 }
 
 export function compileHelper (node: GoNodeBase, cte: CompileTimeEnvironment) {

@@ -14,6 +14,7 @@ import GoParser, {
   ForStmtContext,
   FunctionDeclContext,
   FunctionLitContext,
+  GoStmtContext,
   IdentifierListContext,
   IfStmtContext,
   IncDecStmtContext,
@@ -48,10 +49,12 @@ import {
   FunctionDecl,
   FunctionLiteral,
   GoNodeBase,
+  GoStatement,
   Identifier,
   IdentifierList,
   IfStatement,
   IncDecStatement,
+  IntegerLiteral,
   Literal,
   Operand,
   ParameterDecl,
@@ -169,10 +172,20 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitReturnStmt(ctx.returnStmt());
     } else if (ctx.forStmt() != null) {
       return this.visitForStmt(ctx.forStmt());
+    } else if (ctx.goStmt() != null) {
+      return this.visitGoStmt(ctx.goStmt());
     }
 
     throw new Error("Not implemented");
   };
+
+  visitGoStmt = (ctx: GoStmtContext): GoStatement => {
+    return {
+      type: "GoStatement",
+      //   position: getPosition(ctx),
+      expression: this.visitExpression(ctx.expression()),
+    }
+  }
 
   visitForStmt = (ctx: ForStmtContext): ForStatement => {
     return {
@@ -220,6 +233,13 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitShortVarDecl(ctx.shortVarDecl());
     } else if (ctx.incDecStmt() != null) {
       return this.visitIncDecStmt(ctx.incDecStmt());
+    } else if (ctx.sendStmt() != null) {
+      return {
+        type: "SendStatement",
+        //   position: getPosition(ctx),
+        channel: this.visitExpression(ctx.sendStmt().expression(0)),
+        value: this.visitExpression(ctx.sendStmt().expression(1)),
+      }
     }
 
     throw new Error("Not implemented");
@@ -382,18 +402,46 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     } else if (ctx.operand() != null) {
       return this.visitOperand(ctx.operand());
     } else if (ctx.primaryExpr() !== null && ctx.arguments() !== null) {
+      console.log(ctx.primaryExpr().getText(), ctx.arguments().getText());
+      console.log(ctx.primaryExpr().getText() === "make")
+      if (ctx.primaryExpr().getText() === "make") {
+        const expr = this.visitArguments(ctx.arguments()).expressions
+        return {
+          type: "MakeExpression",
+          //   position: getPosition(ctx),
+          dataType: (expr[0] as Identifier).name,
+          capacity: expr.length > 1 ? (expr[1] as IntegerLiteral).value : 0,
+        };
+        }
+
       return {
         type: "FunctionCall",
         //   position: getPosition(ctx),
         func: this.visitPrimaryExpr(ctx.primaryExpr()) as Identifier,
-        args: this.visitArguments(ctx.arguments()).expressions,
+        args: this.visitArguments(ctx.arguments())?.expressions,
       };
     }
+    
     throw new Error("Not implemented");
   };
 
   visitArguments = (ctx: ArgumentsContext): ExpressionList => {
-    return this.visitExpressionList(ctx.expressionList());
+    if (ctx.type_() !== null) {
+      const expressions: Expression[] = [{ type: "Identifier", name: ctx.type_().getText() }];
+      if (ctx.expressionList() !== null) {
+        console.log(ctx.expressionList().getText())
+        for (const expr of this.visitExpressionList(ctx.expressionList()).expressions) {
+          expressions.push(expr)
+        }
+      }
+      return {
+        type: "ExpressionList",
+        //   position: getPosition(ctx),
+        expressions: expressions,
+      }
+      } else if (ctx.expressionList() !== null) {
+       return this.visitExpressionList(ctx.expressionList());
+    }
   }
 
   visitSignature = (ctx: SignatureContext): Signature => {
@@ -493,6 +541,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   }
 
   visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
+    console.log(ctx.getText())
     const expressions: Expression[] = [];
     for (const expr of ctx.expression_list()) {
       expressions.push(this.visitExpression(expr));

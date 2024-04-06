@@ -72,7 +72,18 @@ export interface StatementList extends GoNodeBase {
   statements: Statement[];
 }
 
-export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement;
+export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | GoStatement | SendStatement;
+
+export interface SendStatement extends GoNodeBase {
+  type: "SendStatement";
+  channel: Expression;
+  value: Expression;
+}
+
+export interface GoStatement extends GoNodeBase {
+  type: "GoStatement";
+  expression: Expression;
+}
 
 export interface ReturnStatement extends GoNodeBase {
   type: "ReturnStatement";
@@ -153,7 +164,14 @@ export interface VarSpec extends GoNodeBase {
 }
 
 // TODO: add function call
-export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | FunctionCall;
+export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | FunctionCall | MakeExpression;
+
+// only support make chan
+export interface MakeExpression extends GoNodeBase {
+  type: "MakeExpression";
+  dataType: DataType;
+  capacity: number;
+}
 
 export interface FunctionCall extends GoNodeBase {
   type: "FunctionCall";
