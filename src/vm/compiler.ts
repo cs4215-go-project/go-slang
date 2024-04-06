@@ -1,4 +1,4 @@
-import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, ConstSpec, Declaration, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, ConstSpec, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
 const builtins = ["println", "panic", "sleep", "make", "max", "min", ]
 
@@ -28,8 +28,8 @@ function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
             }
         } else if (decl.type === "FunctionDecl") {
             locals.push((decl as FunctionDecl).name);
-        } else if (decl.type === "Assignment") {
-            for (const expr of (decl as Assignment).left) {
+        } else if (decl.type === "DeclareAssign") {
+            for (const expr of (decl as DeclareAssign).left) {
                 if (expr.type === "Identifier") {
                     locals.push((expr as Identifier).name)
                 }
@@ -194,6 +194,15 @@ const compileComp = {
         for (let i = 0; i < comp.left.length; i++) {
             compileHelper(comp.right[i], cte);
             console.log("Assignment", (comp.left[i] as Identifier).name, compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name))
+            instrs[wc++] = {
+                opcode: "ASSIGN",
+                compile_pos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+            }
+        }
+    },
+    "DeclareAssign": (comp: DeclareAssign, cte: CompileTimeEnvironment) => {
+        for (let i = 0; i < comp.left.length; i++) {
+            compileHelper(comp.right[i], cte);
             instrs[wc++] = {
                 opcode: "ASSIGN",
                 compile_pos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)

@@ -385,6 +385,7 @@ export default class Memory {
             case Tag.False:
                 return false;
             case Tag.Int:
+                console.log(this.get_int(addr))
                 return this.get_int(addr);
             default:
                 throw new Error("Unsupported type");

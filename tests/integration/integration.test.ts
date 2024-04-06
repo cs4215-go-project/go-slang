@@ -9,7 +9,7 @@ describe("end to end", () => {
 package main
 
 func main() {
-    1+5*10
+    return 1+5*10
 }
         `;
 
@@ -22,7 +22,7 @@ func main() {
 package main
 
 func main() {
-    -10
+    return -10
 }
         `;
 
@@ -37,7 +37,7 @@ package main
 const x, y = 10, 20
 
 func main() {
-    x + y
+    return x + y
 }
         `;
 
@@ -53,7 +53,7 @@ const x, y = 10, 20
 
 func main() {
     var z int = 1
-    x + y + z
+    return x + y + z
 }
         `;
 
@@ -68,7 +68,7 @@ package main
 const x = 10
 
 func main() {
-    x
+    return x
 }
         `;
 
@@ -88,6 +88,7 @@ func main() {
     } else {
         x = 10
     }
+    return x
 }
         `;
 
@@ -106,6 +107,7 @@ func main() {
     } else {
         x = 10
     }
+    return x
 }
         `;
 
@@ -126,6 +128,7 @@ func main() {
     } else {
         x = 5
     }
+    return x
 }
         `;
 
@@ -133,17 +136,17 @@ func main() {
     expect(result).toBe(5);
   });
 
-  test("func", () => {
+  test("func basic", () => {
     const input = `
 package main
 
 func main() {
     f := func(x, y int) int { return x + y }
-    f(4, 3)
+    return f(4, 3)
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(7);
   });
@@ -196,7 +199,7 @@ func main() {
         for i < 3 {
             i++
         }
-        i
+        return i
     }
             `;
 
@@ -227,7 +230,7 @@ func main() {
     package main
 
     func main() {
-        max(2, 3)
+        return max(2, 3)
     }
             `;
 
@@ -240,12 +243,11 @@ func main() {
     package main
 
     func main() {
-        min(2, 3)
-        10
+        return min(2, 3)
     }
             `;
 
     const result = parseCompileAndRun(512, input, setOutputStub);
-    expect(result).toBe(10);
+    expect(result).toBe(2);
   });
 });

@@ -42,6 +42,7 @@ import {
   ConstDecl,
   ConstSpec,
   Declaration,
+  DeclareAssign,
   Expression,
   ExpressionList,
   ExpressionStatement,
@@ -254,9 +255,9 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     };
   }
 
-  visitShortVarDecl = (ctx: ShortVarDeclContext): Assignment => {
+  visitShortVarDecl = (ctx: ShortVarDeclContext): DeclareAssign => {
     return {
-      type: "Assignment",
+      type: "DeclareAssign",
       //   position: getPosition(ctx),
       left: this.visitIdentifierList(ctx.identifierList()).identifiers,
       right: this.visitExpressionList(ctx.expressionList()).expressions,

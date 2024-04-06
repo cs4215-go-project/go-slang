@@ -72,7 +72,7 @@ export interface StatementList extends GoNodeBase {
   statements: Statement[];
 }
 
-export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | GoStatement | SendStatement;
+export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | GoStatement | SendStatement | DeclareAssign;
 
 export interface SendStatement extends GoNodeBase {
   type: "SendStatement";
@@ -120,10 +120,17 @@ export interface ExpressionStatement extends GoNodeBase {
     expression: Expression;
 }
 
-// We only support `=` and `:=` assignment, no +=, -=, etc
+// =
 export interface Assignment extends GoNodeBase {
     type: "Assignment";
     left: Expression[];
+    right: Expression[];
+}
+
+// :=
+export interface DeclareAssign extends GoNodeBase {
+  type: "DeclareAssign";
+  left: Expression[];
     right: Expression[];
 }
 
