@@ -14,6 +14,7 @@ func main() {
         `;
 
     const result = parseCompileAndRun(512, input, setOutputStub);
+    console.log(result)
     expect(result).toBe(51);
   });
 

@@ -10,6 +10,7 @@ export default function parseCompileAndRun(memSize: number, input: string, setOu
         const parsed = parse(input);
         console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
+        console.log(instructions);
         return new Machine(memSize, instructions, setOutput).run();
     } catch (e) {
         return e;
@@ -78,7 +79,7 @@ export class Machine {
             const instr = this.instructions[this.pc++];
             console.log(this.pc, instr)
             this.execute(instr);
-            console.log(this.opStack)
+            console.log("next",this.pc)
         }
 
         const resultAddress = this.opStack.pop();
@@ -86,6 +87,7 @@ export class Machine {
     }
 
     execute(instr: Instruction): void {
+        console.log("instr", instr)
         switch (instr.opcode) {
             case "LDC": {
                 const addr = this.memory.box(instr.value);

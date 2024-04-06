@@ -5,6 +5,7 @@ const builtins = ["println", "panic", "sleep", "make", "max", "min", ]
 type CompileTimeEnvironment = string[][];
 
 function compileTimeEnvironmentPosition(cte: CompileTimeEnvironment, identifier: string) {
+    console.log(cte)
     let frameIndex = cte.length;
     while (valueIndex(cte[--frameIndex], identifier) === -1) {}
     return [frameIndex, valueIndex(cte[frameIndex], identifier)];
@@ -67,7 +68,7 @@ const compileComp = {
         });
         
 
-        instrs[wc++] = { opcode: "LD", compile_pos: [1, locals.indexOf("main")] };
+        instrs[wc++] = { opcode: "LD", compilePos: [1, locals.indexOf("main")] };
         instrs[wc++] = { opcode: "START_GOROUTINE" };
         instrs[wc++] = { opcode: "CALL", arity: 0 };
         instrs[wc++] = { opcode: "STOP_GOROUTINE" };
@@ -104,7 +105,7 @@ const compileComp = {
     "FunctionLiteral": (comp: FunctionLiteral, cte: CompileTimeEnvironment) => {
         const arity = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
         instrs[wc++] = { opcode: "LDF", arity: arity, skip: wc+1 };
-        const goto = { opcode: "GOTO", target_instr: undefined };
+        const goto = { opcode: "GOTO", targetInstr: undefined };
         instrs[wc++] = goto;
         const params = []
         for (const param of comp.signature.parameters.parameterDecls) {
@@ -115,13 +116,13 @@ const compileComp = {
         compileHelper(comp.body, compileTimeEnvironmentExtend(params, cte));
         instrs[wc++] = { opcode: "LDC", value: undefined };
         instrs[wc++] = {opcode: 'RESET'}
-        goto.target_instr = wc;
+        goto.targetInstr = wc;
     },
     "Block": (comp: Block, cte: CompileTimeEnvironment) => {
         console.log(comp, cte)
         const locals = scanDeclarations(comp.statementList.statements);
         console.log(locals)
-		instrs[wc++] = { opcode: "ENTER_SCOPE", num_declarations: locals.length };
+		instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: locals.length };
         if (comp.statementList.statements.length === 0) {
             instrs[wc++] = { opcode: "LDC", value: undefined};
             return
@@ -136,7 +137,7 @@ const compileComp = {
     },
     "Identifier": (comp: Identifier, cte: CompileTimeEnvironment) => {
         if (builtins.includes(comp.name)) {
-            instrs[wc++] = { opcode: "LD", compile_pos: [ 0, builtins.indexOf(comp.name) ] }
+            instrs[wc++] = { opcode: "LD", compilePos: [ 0, builtins.indexOf(comp.name) ] }
             return
         }
 
@@ -195,7 +196,7 @@ const compileComp = {
             console.log("Assignment", (comp.left[i] as Identifier).name, compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name))
             instrs[wc++] = {
                 opcode: "ASSIGN",
-                compile_pos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+                compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
             }
         }
     },
@@ -204,20 +205,20 @@ const compileComp = {
             compileHelper(comp.right[i], cte);
             instrs[wc++] = {
                 opcode: "ASSIGN",
-                compile_pos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
+                compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
             }
         }
     },
     "IfStatement": (comp: IfStatement, cte: CompileTimeEnvironment) => {
         compileHelper(comp.condition, cte);
-        const jof = { opcode: "JOF", target_instr: undefined};
+        const jof = { opcode: "JOF", targetInstr: undefined};
         instrs[wc++] = jof;
         compileHelper(comp.ifBranch, cte);
-        const goto = { opcode: "GOTO", target_instr: undefined};
+        const goto = { opcode: "GOTO", targetInstr: undefined};
         instrs[wc++] = goto;
-        jof.target_instr = wc;
+        jof.targetInstr = wc;
         compileHelper(comp.elseBranch, cte);
-        goto.target_instr = wc;
+        goto.targetInstr = wc;
     },
     "ReturnStatement": (comp: ReturnStatement, cte: CompileTimeEnvironment) => {
         // TODO: support multiple return statements
@@ -231,12 +232,12 @@ const compileComp = {
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
         const loopStart = wc;
         compileHelper(comp.condition, cte);
-        const jof = { opcode: "JOF", target_instr: undefined };
+        const jof = { opcode: "JOF", targetInstr: undefined };
         instrs[wc++] = jof;
         compileHelper(comp.body, cte);
         instrs[wc++] = { opcode: "POP" };
-        instrs[wc++] = { opcode: "GOTO", target_instr: loopStart };
-        jof.target_instr = wc;
+        instrs[wc++] = { opcode: "GOTO", targetInstr: loopStart };
+        jof.targetInstr = wc;
         instrs[wc++] = { opcode: "LDC", value: undefined }
     },
     "IncDecStatement": (comp: IncDecStatement, cte: CompileTimeEnvironment) => {
@@ -245,7 +246,7 @@ const compileComp = {
         instrs[wc++] = { opcode: "BINOP", operator: comp.operator === "++" ? "+" : "-" };
         instrs[wc++] = {
             opcode: "ASSIGN",
-            compile_pos: compileTimeEnvironmentPosition(cte, (comp.expression as Identifier).name)
+            compilePos: compileTimeEnvironmentPosition(cte, (comp.expression as Identifier).name)
         }
     },
     "GoStatement": (comp: GoStatement, cte: CompileTimeEnvironment) => {
