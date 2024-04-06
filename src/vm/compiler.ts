@@ -48,7 +48,7 @@ const globalCompileFrame = [] // TODO: add built-in functions
 const compileComp = {
     "SourceFile": (comp: SourceFile, cte: CompileTimeEnvironment) => {
         const locals = scanDeclarations(comp.declarations);
-		instrs[wc++] = { opcode: "ENTER_SCOPE", num_declarations: locals.length };
+		instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: locals.length };
         let first = true;
         // sequence of declarations
         console.log(locals)
@@ -80,7 +80,7 @@ const compileComp = {
         instrs[wc++] = {
             opcode: "LD",
             sym: comp.name,
-            compile_pos: compileTimeEnvironmentPosition(cte, comp.name)
+            compilePos: compileTimeEnvironmentPosition(cte, comp.name)
         }
     },
     "ExpressionStatement": (comp: ExpressionStatement, cte: CompileTimeEnvironment) => {
@@ -108,7 +108,7 @@ const compileComp = {
                 compileHelper(spec.expressionList.expressions[i], cte);
                 instrs[wc++] = {
                     opcode: "ASSIGN",
-                    compile_pos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
+                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
                 }
             }
         }
@@ -120,7 +120,7 @@ const compileComp = {
                 compileHelper(spec.expressionList.expressions[i], cte);
                 instrs[wc++] = {
                     opcode: "ASSIGN",
-                    compile_pos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
+                    compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i])
                 }
             }
         }
