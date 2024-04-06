@@ -1,6 +1,7 @@
 import parse from "../../parser/parser";
 import Memory, { Tag } from "../utils/memory/memory";
 import {compile, Instruction} from "./compiler";
+import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";
 
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
@@ -15,6 +16,13 @@ export default function parseCompileAndRun(memSize: number, input: string, setOu
     } catch (e) {
         return e;
     }
+}
+
+type GoroutineContext = {
+    env: number,
+    pc: number,
+    opStack: number[],
+    runtimeStack: number[],
 }
 
 export class Machine {
@@ -39,6 +47,10 @@ export class Machine {
     private builtinImpls: {};
     private builtinMetadata: BuiltinMetadata;
     private builtins: {};
+
+    private goroutineContexts: Map<GoroutineId, GoroutineContext>
+
+    private scheduler: Scheduler;
 
     constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
@@ -72,6 +84,10 @@ export class Machine {
 
         // done allocating roots, set roots for garbage collection
         this.memory.machineRoots = [this.opStack, this.runtimeStack, [this.env]];
+
+        this.goroutineContexts = new Map<GoroutineId, GoroutineContext>();
+
+        this.scheduler = new FIFOScheduler();
     }
 
     run(): any {  
@@ -232,7 +248,18 @@ export class Machine {
                 break;
             }
             case "START_GOROUTINE": {
-                console.log("START_GOROUTINE")
+                const g = this.scheduler.scheduleGoroutine();
+                if (this.scheduler.currentGoroutine() === undefined) {
+                    this.scheduler.runNextGoroutine();
+                }
+
+                const gctx = {
+                    env: this.env,
+                    pc: this.pc + 1,
+                    opStack: [],
+                    runtimeStack: [],
+                }
+                this.goroutineContexts.set(g, gctx);
                 break
             }
             case "STOP_GOROUTINE": {

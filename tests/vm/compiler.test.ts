@@ -69,7 +69,10 @@ describe("constant declaration", () => {
               type: "ConstSpec",
               identifierList: {
                 type: "IdentifierList",
-                identifiers: ["x"],
+                identifiers: [{
+                  type: "Identifier",
+                  name: "x",
+                }],
               },
               expressionList: {
                 type: "ExpressionList",

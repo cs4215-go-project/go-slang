@@ -97,10 +97,13 @@ const compileComp = {
     },
     "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
         compileHelper(comp.func, cte);
-        for (const arg of comp.args) {
-            compileHelper(arg, cte);
+
+        if (comp.args) {
+            for (const arg of comp.args) {
+                compileHelper(arg, cte);
+            }
         }
-        instrs[wc++] = { opcode: "CALL", arity: comp.args.length };
+        instrs[wc++] = { opcode: "CALL", arity: comp.args ? comp.args.length : 0};
     },
     "FunctionLiteral": (comp: FunctionLiteral, cte: CompileTimeEnvironment) => {
         const arity = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
@@ -250,8 +253,9 @@ const compileComp = {
         }
     },
     "GoStatement": (comp: GoStatement, cte: CompileTimeEnvironment) => {
-        instrs[wc++] = { opcode: "START_GOROUTINE" };
+        const start = { opcode: "START_GOROUTINE", addr: undefined };
         compileHelper(comp.expression, cte);
+        instrs[wc++] = start;
         instrs[wc++] = { opcode: "STOP_GOROUTINE" };
     },
     "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
@@ -264,6 +268,7 @@ const compileComp = {
         instrs[wc++] = { opcode: "LDC", value: comp.capacity };
     },
     "SendStatement": (comp: SendStatement, cte: CompileTimeEnvironment) => {
+
     }
 }
 

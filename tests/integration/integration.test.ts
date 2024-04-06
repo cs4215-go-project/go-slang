@@ -214,16 +214,18 @@ func main() {
 
     func main() {
         ch := make(chan int, 2)
-        go func() {
-            ch <- 1
-        }()
+        const x = 10
+        go func(y int) {
+            ch <- y + 1
+            return -1
+        }(x)
         <-ch
     }
             `;
 
     const result = parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
-    expect(result).toBe(1);
+    expect(result).toBe(11);
   });
 
   test("builtin max", () => {
