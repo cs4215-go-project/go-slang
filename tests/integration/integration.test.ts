@@ -166,6 +166,27 @@ func main() {
     expect(result).toBe(7);
   });
 
+  test("func multiple", () => {
+    const input = `
+package main
+
+const x = 10
+
+func add(x, y int) int {
+    return x + y
+}
+
+func main() {
+    sub := func(x, y int) int { return x - y }
+    return add(4, sub(x, 3))
+}
+        `;
+
+    const result = parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(11);
+  });
+
   test("loop", () => {
     const input = `
     package main

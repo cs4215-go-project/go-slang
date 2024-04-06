@@ -22,12 +22,8 @@ function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
     let locals = [];
     for (const decl of comp) {
         console.log(decl, decl.type)
-        if (decl.type === "ConstDecl") {
+        if (decl.type === "ConstDecl" || decl.type === "VarDecl") {
             for (const spec of (decl as ConstDecl).specs) {
-                locals = locals.concat(spec.identifierList.identifiers);
-            }
-        } else if (decl.type === "VarDecl") {
-            for (const spec of (decl as VarDecl).specs) {
                 locals = locals.concat(spec.identifierList.identifiers.map((id) => id.name));
             }
         } else if (decl.type === "FunctionDecl") {
@@ -61,7 +57,6 @@ const compileComp = {
         const locals = scanDeclarations(comp.declarations);
         instrs[wc++] = { opcode: "ENTER_SCOPE", num_declarations: locals.length };
 
-        
         let first = true;
         // sequence of declarations
         comp.declarations.forEach((decl) => {
