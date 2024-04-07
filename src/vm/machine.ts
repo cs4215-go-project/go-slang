@@ -51,6 +51,7 @@ export class Machine {
     private goroutineContexts: Map<GoroutineId, GoroutineContext>
 
     private scheduler: Scheduler;
+    private remainingTimeSlice: number;
 
     constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
@@ -88,18 +89,59 @@ export class Machine {
         this.goroutineContexts = new Map<GoroutineId, GoroutineContext>();
 
         this.scheduler = new FIFOScheduler();
+        this.remainingTimeSlice = undefined;
     }
 
     run(): any {  
         while (this.instructions[this.pc].opcode !== "DONE") {
+            if (this.remainingTimeSlice && this.remainingTimeSlice < 0) {
+                throw new Error("Negative time slice")
+            }
+            // TODO: error when deadlock
+            console.log("current goroutine", this.scheduler.currentGoroutine())
+            console.log("remaining time slice", this.remainingTimeSlice)
+            if (this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
+                console.log("prev", this.scheduler.currentGoroutine())
+                // context switch due to time slice expiration, not blocked
+                this.contextSwitch(false);
+                console.log("curr", this.scheduler.currentGoroutine())
+            }
+            
             const instr = this.instructions[this.pc++];
-            console.log(this.pc, instr)
+            console.log(this.scheduler.currentGoroutine(), this.pc, instr)
             this.execute(instr);
-            console.log("next",this.pc)
+            this.remainingTimeSlice--;
         }
 
         const resultAddress = this.opStack.pop();
         return this.memory.unbox(resultAddress);
+    }
+
+    isDeadlock(): boolean {
+        return this.scheduler.numBlockedGoroutine() === this.scheduler.numGoroutine();
+    }
+
+    contextSwitch(isBlocked: boolean): void {
+        console.log(this.goroutineContexts)
+        this.goroutineContexts.set(this.scheduler.currentGoroutine(), {
+            env: this.env,
+            pc: this.pc,
+            opStack: this.opStack,
+            runtimeStack: this.runtimeStack,
+        })
+        this.scheduler.interruptGoroutine(isBlocked);
+
+        const g = this.scheduler.runNextGoroutine();
+        if (g === null) {
+            throw new Error("no goroutine to run next")
+        }
+
+        const gctx = this.goroutineContexts.get(g[0]);
+        this.remainingTimeSlice = g[1];
+        this.env = gctx.env;
+        this.pc = gctx.pc;
+        this.opStack = gctx.opStack;
+        this.runtimeStack = gctx.runtimeStack;
     }
 
     execute(instr: Instruction): void {
@@ -196,6 +238,7 @@ export class Machine {
                 }
 
                 const newPc = this.memory.getClosurePc(closureAddr);
+                console.log("NEW PC", newPc)
                 const newFrameAddr = this.memory.allocateFrame(arity);
 
                 for (let i = arity - 1; i >= 0; i--) {
@@ -250,20 +293,43 @@ export class Machine {
             case "START_GOROUTINE": {
                 const g = this.scheduler.scheduleGoroutine();
                 if (this.scheduler.currentGoroutine() === undefined) {
-                    this.scheduler.runNextGoroutine();
+                    const [_, timeSlice] = this.scheduler.runNextGoroutine();
+                    console.log("main goroutine starting", g, timeSlice)
+                    this.remainingTimeSlice = timeSlice
                 }
 
                 const gctx = {
                     env: this.env,
-                    pc: this.pc + 1,
+                    pc: this.pc,
                     opStack: [],
                     runtimeStack: [],
                 }
                 this.goroutineContexts.set(g, gctx);
+
+                if (instr.stopInstr) {
+                    this.pc = instr.stopInstr;
+                }
                 break
             }
             case "STOP_GOROUTINE": {
-                console.log("STOP_GOROUTINE")
+                // if it's main, then we're done
+                if (this.scheduler.currentGoroutine() === 0) {
+                    return;
+                }
+
+                this.scheduler.terminateGoroutine(this.scheduler.currentGoroutine());
+                const g = this.scheduler.runNextGoroutine();
+                if (g === null) {
+                    throw new Error("no goroutine to run next")
+                }
+
+                const gctx = this.goroutineContexts.get(g[0]);
+                this.remainingTimeSlice = g[1];
+                this.env = gctx.env;
+                this.pc = gctx.pc;
+                this.opStack = gctx.opStack;
+                this.runtimeStack = gctx.runtimeStack;
+
                 break
             }
             default:

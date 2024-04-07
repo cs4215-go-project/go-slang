@@ -253,10 +253,11 @@ const compileComp = {
         }
     },
     "GoStatement": (comp: GoStatement, cte: CompileTimeEnvironment) => {
-        const start = { opcode: "START_GOROUTINE", addr: undefined };
+        const start = { opcode: "START_GOROUTINE", stopInstr: undefined };
+        instrs[wc++] =  start
         compileHelper(comp.expression, cte);
-        instrs[wc++] = start;
         instrs[wc++] = { opcode: "STOP_GOROUTINE" };
+        start.stopInstr = wc;
     },
     "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
         compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
