@@ -122,13 +122,7 @@ export class Machine {
     }
 
     contextSwitch(isBlocked: boolean): void {
-        console.log(this.goroutineContexts)
-        this.goroutineContexts.set(this.scheduler.currentGoroutine(), {
-            env: this.env,
-            pc: this.pc,
-            opStack: this.opStack,
-            runtimeStack: this.runtimeStack,
-        })
+        this.saveGoroutineContext();
         this.scheduler.interruptGoroutine(isBlocked);
 
         const g = this.scheduler.runNextGoroutine();
@@ -136,6 +130,20 @@ export class Machine {
             throw new Error("no goroutine to run next")
         }
 
+        this.restoreGoroutineContext(g);
+    }
+
+    saveGoroutineContext(): void {
+        console.log(this.goroutineContexts)
+        this.goroutineContexts.set(this.scheduler.currentGoroutine(), {
+            env: this.env,
+            pc: this.pc,
+            opStack: this.opStack,
+            runtimeStack: this.runtimeStack,
+        })
+    }
+
+    restoreGoroutineContext(g: [GoroutineId, number]): void {
         const gctx = this.goroutineContexts.get(g[0]);
         this.remainingTimeSlice = g[1];
         this.env = gctx.env;
@@ -163,6 +171,32 @@ export class Machine {
                 const resultAddr = this.memory.box(result);
 
                 this.opStack.push(resultAddr);
+                break;
+            }
+            case "SEND": {
+                const valueAddr = this.opStack.pop();
+                const chanAddr = this.opStack.pop();
+
+                const value = this.memory.unbox(valueAddr);
+                const chan = this.memory.unbox(chanAddr);
+
+                // if channel is unbuffered, a send will block until a receive,
+                // so it will always enter this if block
+                if (!this.memory.sendToIntChannel(chan, value)) {
+                    // full channel, block goroutine
+                    const g = this.scheduler.currentGoroutine();
+                    this.contextSwitch(true);
+                    const sendq = this.memory.getIntChannelSendQueue(chan);
+                    this.memory.addToWaitQueue(sendq, g);
+                } else {
+                    // wake up waiting receiver
+                    const recvq = this.memory.getIntChannelRecvQueue(chan);
+                    if (this.memory.getWaitQueueSize(recvq) !== 0) {
+                        const g = this.memory.popFromWaitQueue(recvq);
+                        this.scheduler.wakeUpGoroutine(g);
+                    }
+                }
+
                 break;
             }
             case "UNOP": {
@@ -219,6 +253,7 @@ export class Machine {
             }
             case "ASSIGN": {
                 const addr = this.opStack[this.opStack.length - 1];
+                console.log("assign", addr)
                 this.memory.setValueInEnv(this.env, instr.compilePos, addr);
                 break;
             }
@@ -323,12 +358,7 @@ export class Machine {
                     throw new Error("no goroutine to run next")
                 }
 
-                const gctx = this.goroutineContexts.get(g[0]);
-                this.remainingTimeSlice = g[1];
-                this.env = gctx.env;
-                this.pc = gctx.pc;
-                this.opStack = gctx.opStack;
-                this.runtimeStack = gctx.runtimeStack;
+                this.restoreGoroutineContext(g);
 
                 break
             }
@@ -429,8 +459,25 @@ export class Machine {
                 }
                 return !operand;
             case "<-":
-                // TODO
-                throw new Error("Unimplemented unary operator: <-");
+                const chan = operand as number;
+
+                const val = this.memory.receiveFromIntChannel(chan)
+                if (val === -1) {
+                    // empty channel, block goroutine
+                    const g = this.scheduler.currentGoroutine();
+                    this.contextSwitch(true);
+                    const recvq = this.memory.getIntChannelRecvQueue(chan);
+                    this.memory.addToWaitQueue(recvq, g);
+                    return; // ???
+                } else {
+                    const sendq = this.memory.getIntChannelSendQueue(chan);
+                    if (this.memory.getWaitQueueSize(sendq) !== 0) {
+                        const g = this.memory.popFromWaitQueue(sendq);
+                        this.scheduler.wakeUpGoroutine(g);
+                    }
+                }
+
+                return val;
             default:
                 throw new Error("Unknown unary operator: " + op);
         }
@@ -466,29 +513,21 @@ export class Machine {
             },
             make: {
                 func: () => {
-                    // 0 = chan int, 1 = chan bool
-
                     // only for Go channels
-                    const typeAddr = this.opStack.pop();
-                    const type = this.memory.unbox(typeAddr);
 
                     const capacityAddr = this.opStack.pop();
                     const capacity = this.memory.unbox(capacityAddr);
                     
-                    // TODO: change the way type is checked (include memory tags)
-                    if (type !== "chan") {
-                        throw new Error("make() only allowed for channels");
-                    }
-
-                    // TODO: change this too idk tbh
                     if (capacity < 0) {
                         throw new Error("make() channel capacity must be non-negative");
                     }
 
-                    // TODO: allocate new channel on this.memory
-                    // TODO: return address of new channel
+                    const chanAddr = this.memory.allocateIntChannel(capacity);
+                    console.log("make channel", chanAddr)
+                    this.opStack.pop(); // pop closure address
+                    this.opStack.push(chanAddr);
                 },
-                arity: 2,
+                arity: 1,
             },
             max: {
                 func: () => {

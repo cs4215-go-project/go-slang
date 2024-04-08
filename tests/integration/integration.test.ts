@@ -216,21 +216,21 @@ func main() {
 
     func main() {
         ch := make(chan int, 2)
-        var x = 10
+        const x = 10
         go func(y int) {
-            // ch <- y + 1
-            const z = y + 1
-            println(z)
+            ch <- y * 2
+            ch <- y * 3
+            ch <- y * 3
         }(x)
-        // <-ch
-        println(x)
-        // return x
+        <-ch
+        y := <-ch
+        return y + <-ch
     }
             `;
 
     const result = parseCompileAndRun(2048, input, setOutputStub);
-    // expect(result).toBe(10);
     console.log(result);
+    expect(result).toBe(60);
   });
 
   test("builtin max", () => {

@@ -260,16 +260,17 @@ const compileComp = {
         start.stopInstr = wc;
     },
     "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
-        compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
-        if (comp.dataType === "chanint") {
-            instrs[wc++] = { opcode: "LDC", value: ChanType.INT };
-        } else if (comp.dataType === "chanbool") {
-            instrs[wc++] = { opcode: "LDC", value: ChanType.BOOL };
+        if (comp.dataType !== "chanint") {
+            throw new Error("Only chan int is supported for now")
         }
+        compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
         instrs[wc++] = { opcode: "LDC", value: comp.capacity };
+        instrs[wc++] = { opcode: "CALL", arity: 1 };
     },
     "SendStatement": (comp: SendStatement, cte: CompileTimeEnvironment) => {
-
+        compileHelper(comp.channel, cte);
+        compileHelper(comp.value, cte);
+        instrs[wc++] = { opcode: "SEND" };
     }
 }
 
