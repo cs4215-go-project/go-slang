@@ -20,7 +20,7 @@ export class FIFOScheduler implements Scheduler {
     private readyQueue: GoroutineId[] = []
     private blockedQueue: GoroutineId[] = []
     private nextGoroutineId: GoroutineId = 0
-    private timeQuanta: number = 1 + 1
+    private timeQuanta: number = 2 + 1
 
     numGoroutine(): number {
         return this.readyQueue.length + this.blockedQueue.length + (this.currentGoroutineId === undefined ? 0 : 1)
@@ -63,11 +63,7 @@ export class FIFOScheduler implements Scheduler {
         } else if (this.readyQueue.length !== 0) {
             const g = this.readyQueue.shift()!
             this.currentGoroutineId = g
-            if (g === 1) {
-                return [g, 10]
-            } else {
-                return [g, this.timeQuanta]
-            }
+            return [g, this.timeQuanta]
         } else {
             // ready is empty, but blocked is not
             // so do nothing?

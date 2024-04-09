@@ -185,8 +185,8 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       type: "GoStatement",
       //   position: getPosition(ctx),
       expression: this.visitExpression(ctx.expression()),
-    }
-  }
+    };
+  };
 
   visitForStmt = (ctx: ForStmtContext): ForStatement => {
     return {
@@ -195,7 +195,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       condition: this.visitExpression(ctx.expression()),
       body: this.visitBlock(ctx.block()),
     };
-  }
+  };
 
   visitReturnStmt = (ctx: ReturnStmtContext): ReturnStatement => {
     return {
@@ -203,7 +203,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       //   position: getPosition(ctx),
       values: this.visitExpressionList(ctx.expressionList()).expressions,
     };
-  }
+  };
 
   visitIfStmt = (ctx: IfStmtContext): IfStatement => {
     // we don't support if x := f(); x < y { ... }
@@ -223,7 +223,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       ifBranch: this.visitBlock(ctx.block(0)),
       elseBranch: elseBranch,
     };
-  }
+  };
 
   visitSimpleStmt = (ctx: SimpleStmtContext): Statement => {
     if (ctx.expressionStmt() != null) {
@@ -240,7 +240,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         //   position: getPosition(ctx),
         channel: this.visitExpression(ctx.sendStmt().expression(0)),
         value: this.visitExpression(ctx.sendStmt().expression(1)),
-      }
+      };
     }
 
     throw new Error("Not implemented");
@@ -253,7 +253,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       expression: this.visitExpression(ctx.expression()),
       operator: ctx.PLUS_PLUS() ? "++" : "--",
     };
-  }
+  };
 
   visitShortVarDecl = (ctx: ShortVarDeclContext): DeclareAssign => {
     return {
@@ -261,8 +261,8 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       //   position: getPosition(ctx),
       left: this.visitIdentifierList(ctx.identifierList()).identifiers,
       right: this.visitExpressionList(ctx.expressionList()).expressions,
-    }
-  }
+    };
+  };
 
   visitAssignment = (ctx: AssignmentContext): Assignment => {
     return {
@@ -270,8 +270,8 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       //   position: getPosition(ctx),
       left: this.visitExpressionList(ctx.expressionList(0)).expressions,
       right: this.visitExpressionList(ctx.expressionList(1)).expressions,
-    }
-  }
+    };
+  };
 
   visitExpressionStmt = (ctx: ExpressionStmtContext): ExpressionStatement => {
     return {
@@ -290,7 +290,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     if (ctx.expression_list().length == 1) {
       return {
         type: "UnaryExpr",
-        operator: (ctx._unary_op.text as UnaryOperator),
+        operator: ctx._unary_op.text as UnaryOperator,
         expr: this.visitExpression(ctx.expression(0)),
       };
     }
@@ -403,17 +403,21 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     } else if (ctx.operand() != null) {
       return this.visitOperand(ctx.operand());
     } else if (ctx.primaryExpr() !== null && ctx.arguments() !== null) {
-      console.log(ctx.primaryExpr().getText(), ctx.arguments().getText());
-      console.log(ctx.primaryExpr().getText() === "make")
       if (ctx.primaryExpr().getText() === "make") {
-        const expr = this.visitArguments(ctx.arguments()).expressions
+        const expr = this.visitArguments(ctx.arguments()).expressions;
         return {
           type: "MakeExpression",
           //   position: getPosition(ctx),
           dataType: (expr[0] as Identifier).name,
           capacity: expr.length > 1 ? (expr[1] as IntegerLiteral).value : 0,
         };
+      } else if (ctx.primaryExpr().getText() === "close") {
+        return {
+          type: "CloseExpression",
+          //   position: getPosition(ctx),
+          channel: this.visitArguments(ctx.arguments()).expressions[0],
         }
+      }
 
       return {
         type: "FunctionCall",
@@ -422,28 +426,31 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         args: this.visitArguments(ctx.arguments())?.expressions,
       };
     }
-    
+
     throw new Error("Not implemented");
   };
 
   visitArguments = (ctx: ArgumentsContext): ExpressionList => {
     if (ctx.type_() !== null) {
-      const expressions: Expression[] = [{ type: "Identifier", name: ctx.type_().getText() }];
+      const expressions: Expression[] = [
+        { type: "Identifier", name: ctx.type_().getText() },
+      ];
       if (ctx.expressionList() !== null) {
-        console.log(ctx.expressionList().getText())
-        for (const expr of this.visitExpressionList(ctx.expressionList()).expressions) {
-          expressions.push(expr)
+        console.log(ctx.expressionList().getText());
+        for (const expr of this.visitExpressionList(ctx.expressionList())
+          .expressions) {
+          expressions.push(expr);
         }
       }
       return {
         type: "ExpressionList",
         //   position: getPosition(ctx),
         expressions: expressions,
-      }
-      } else if (ctx.expressionList() !== null) {
-       return this.visitExpressionList(ctx.expressionList());
+      };
+    } else if (ctx.expressionList() !== null) {
+      return this.visitExpressionList(ctx.expressionList());
     }
-  }
+  };
 
   visitSignature = (ctx: SignatureContext): Signature => {
     return {
@@ -518,8 +525,11 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   visitConstDecl = (ctx: ConstDeclContext): ConstDecl => {
     const specs: ConstSpec[] = [];
     for (const spec of ctx.constSpec_list()) {
-      const constSpec =this.visitConstSpec(spec)
-      if (constSpec.identifierList.identifiers.length > constSpec.expressionList.expressions.length) {
+      const constSpec = this.visitConstSpec(spec);
+      if (
+        constSpec.identifierList.identifiers.length >
+        constSpec.expressionList.expressions.length
+      ) {
         throw new Error("missing init expr for const decl");
       }
       specs.push(constSpec);
@@ -539,10 +549,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       dataType: ctx.type_()?.getText(),
       expressionList: this.visitExpressionList(ctx.expressionList()),
     };
-  }
+  };
 
   visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
-    console.log(ctx.getText())
+    console.log(ctx.getText());
     const expressions: Expression[] = [];
     for (const expr of ctx.expression_list()) {
       expressions.push(this.visitExpression(expr));
@@ -551,13 +561,13 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       type: "ExpressionList",
       //   position: getPosition(ctx),
       expressions: expressions,
-    }
-  }
+    };
+  };
 
   visitVarDecl = (ctx: VarDeclContext): VarDecl => {
     const specs: VarSpec[] = [];
     for (const spec of ctx.varSpec_list()) {
-      const varSpec =this.visitVarSpec(spec)
+      const varSpec = this.visitVarSpec(spec);
       specs.push(varSpec);
     }
 
@@ -576,8 +586,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       dataType: ctx.type_()?.getText(),
       expressionList: this.visitExpressionList(ctx.expressionList()),
     };
-  }
-
+  };
 
   visitOperand = (ctx: OperandContext): Operand => {
     if (ctx.literal() !== null) {
@@ -590,7 +599,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         name: ctx.operandName().getText(),
       };
     }
-  }
+  };
 
   visitLiteral = (ctx: LiteralContext): Literal => {
     if (ctx.basicLit() != null) {
@@ -600,7 +609,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     }
 
     throw new Error("Not implemented");
-  }
+  };
 
   visitFunctionLit = (ctx: FunctionLitContext): FunctionLiteral => {
     return {
@@ -609,7 +618,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       signature: this.visitSignature(ctx.signature()),
       body: this.visitBlock(ctx.block()),
     };
-  }
+  };
 
   visitBasicLit = (ctx: BasicLitContext): BasicLiteral => {
     // console.log(ctx.getText());
@@ -634,5 +643,5 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         value: false,
       };
     }
-  }
+  };
 }

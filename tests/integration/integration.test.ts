@@ -210,7 +210,7 @@ func main() {
     expect(result).toBe(3);
   });
 
-  test("go func", () => {
+  test("go func basic", () => {
     const input = `
     package main
 
@@ -231,6 +231,38 @@ func main() {
     const result = parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(60);
+  });
+
+  test("go func closed channel", () => {
+    const input = `
+    package main
+
+    func main() {
+        ch := make(chan int)
+        const x = 10
+        go func(y int) {
+            ch <- y * 2
+            close(ch)
+        }(x)
+        <-ch
+    }
+            `;
+    const result = parseCompileAndRun(2048, input, setOutputStub)
+    expect(result.message).toBe("panic: send on closed channel");
+  });
+
+  test("closeee", () => {
+    const input = `
+    package main
+
+    func main() {
+        ch := make(chan int)
+        close(ch)
+    }
+            `;
+
+    const result = parseCompileAndRun(512, input, setOutputStub);
+    console.log(result)
   });
 
   test("builtin max", () => {
