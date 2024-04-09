@@ -39,6 +39,18 @@ const CLOSURE_PC_OFFSET: number = 4;
 // callframe offsets
 const CALLFRAME_PC_OFFSET: number = 4;
 
+// channel offsets
+const SEND_IDX_OFFSET: number = 3;
+const RECV_IDX_OFFSET: number = 4;
+const CLOSE_OFFSET: number = 5;
+const QSIZE_OFFSET: number = 6;
+const CAPACITY_OFFSET: number = 7;
+
+// wait queue offsets
+const WAIT_QUEUE_SEND_IDX_OFFSET: number = 3;
+const WAIT_QUEUE_RECV_IDX_OFFSET: number = 4;
+const WAIT_QUEUE_QSIZE_OFFSET: number = 5;
+
 // Golang type tags
 export enum Tag {
     Nil,
@@ -51,7 +63,9 @@ export enum Tag {
     Frame,
     Callframe,
     Blockframe,
-    Closure
+    Closure,
+    IntChannel,
+    WaitQueue,
 }
 
 export enum MarkedStatus {
@@ -73,10 +87,10 @@ export default class Memory {
     public goroutineContexts: Map<GoroutineId, GoroutineContext>;
 
     constructor(numWords: number) {
-        // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
         this.heapSize = numWords;
         if (this.heapSize % NODE_SIZE !== 0) {
             const msg: string = "numWords must be a multiple of " + NODE_SIZE;
+            // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
             throw new Error(msg);
         }
 
@@ -373,11 +387,182 @@ export default class Memory {
     }
 
     /*
-     * TODO: allocate channel
      * need an efficient implementation of a circular queue
      * need head and tail pointers
-     * [tag, size, marked, head, tail, buffer, capacity][...buffered items]
+     * [tag, size, marked, sendIdx, recvIdx, close, qsize, capacity][sendq][recvq][...buffered items]
+     * note: max capacity is 13 (16 - 1 - 2)
      */
+    allocateIntChannel(capacity: number): number {
+        const addr: number = this.allocateNode(Tag.IntChannel, capacity + 1 + 2);
+        this.setByteAtOffset(addr, SEND_IDX_OFFSET, 0);
+        this.setByteAtOffset(addr, RECV_IDX_OFFSET, 0);
+        this.setByteAtOffset(addr, CLOSE_OFFSET, 0);
+        this.setByteAtOffset(addr, QSIZE_OFFSET, 0);
+        this.setByteAtOffset(addr, CAPACITY_OFFSET, capacity);
+        const sendqAddr: number = this.allocateWaitQueue();
+        const recvqAddr: number = this.allocateWaitQueue();
+        this.setChild(addr, 0, sendqAddr);
+        this.setChild(addr, 1, recvqAddr);
+
+        return addr;
+    }
+
+    getIntChannelSendIdx(addr: number): number {
+        return this.getByteAtOffset(addr, SEND_IDX_OFFSET);
+    }
+
+    setIntChannelSendIdx(addr: number, value: number) {
+        this.setByteAtOffset(addr, SEND_IDX_OFFSET, value);
+    }
+
+    getIntChannelRecvIdx(addr: number): number {
+        return this.getByteAtOffset(addr, RECV_IDX_OFFSET);
+    }
+
+    setIntChannelRecvIdx(addr: number, value: number) {
+        this.setByteAtOffset(addr, RECV_IDX_OFFSET, value);
+    }
+
+    getIntChannelClose(addr: number): number {
+        return this.getByteAtOffset(addr, CLOSE_OFFSET);
+    }
+    
+    setIntChannelClose(addr: number, value: number) {
+        this.setByteAtOffset(addr, CLOSE_OFFSET, value);
+    }
+
+    getIntChannelQSize(addr: number): number {
+        return this.getByteAtOffset(addr, QSIZE_OFFSET);
+    }
+
+    setIntChannelQSize(addr: number, value: number) {
+        this.setByteAtOffset(addr, QSIZE_OFFSET, value);
+    }
+
+    getIntChannelCapacity(addr: number): number {
+        return this.getByteAtOffset(addr, CAPACITY_OFFSET);
+    }
+
+    getIntChannelSendQueue(addr: number): number {
+        return this.getChild(addr, 0);
+    }
+
+    getIntChannelRecvQueue(addr: number): number {
+        return this.getChild(addr, 1);
+    }
+
+    setIntInChannel(addr: number, index: number, value: number) {
+        this.setChild(addr, index + 2, value);
+    }
+
+    getIntFromChannel(addr: number, index: number): number {
+        return this.getChild(addr, index + 2);
+    }
+
+    //      r   s
+    // [    3 1 8    ]
+    // increment r
+    receiveFromIntChannel(addr: number): number {
+        if (this.getIntChannelClose(addr) === 1) {
+            throw new Error("cannot read from closed channel");
+        }
+        if (this.getIntChannelQSize(addr) === 0) {
+            return -1;
+        }
+
+        const recvIdx = this.getIntChannelRecvIdx(addr);
+        const newRecvIdx = (recvIdx + 1) % this.getIntChannelCapacity(addr);
+        this.setIntChannelRecvIdx(addr, newRecvIdx);
+
+        const size = this.getIntChannelQSize(addr);
+        this.setIntChannelQSize(addr, size - 1);
+
+        return this.getIntFromChannel(addr, recvIdx);
+    }
+
+    sendToIntChannel(addr: number, value: number): boolean {
+        if (this.getIntChannelClose(addr) === 1) {
+            throw new Error("cannot send to closed channel");
+        }
+        console.log(this.getIntChannelCapacity(addr))
+        if (this.getIntChannelQSize(addr) === this.getIntChannelCapacity(addr)) {
+            return false;
+        }
+
+        const sendIdx = this.getIntChannelSendIdx(addr);
+        const newSendIdx = (sendIdx + 1) % this.getIntChannelCapacity(addr);
+        this.setIntChannelSendIdx(addr, newSendIdx);
+
+        const size = this.getIntChannelQSize(addr);
+        this.setIntChannelQSize(addr, size + 1);
+
+        this.setIntInChannel(addr, sendIdx, value);
+        return true
+    }
+
+    /*
+     * [tag, size, marked, sendIdx, recvIdx, qsize][...goroutine IDs]
+     */
+    allocateWaitQueue(): number {
+        const addr = this.allocateNode(Tag.WaitQueue, 1);
+        this.setByteAtOffset(addr, WAIT_QUEUE_SEND_IDX_OFFSET, 0);
+        this.setByteAtOffset(addr, WAIT_QUEUE_RECV_IDX_OFFSET, 0);
+        this.setByteAtOffset(addr, WAIT_QUEUE_QSIZE_OFFSET, 0);
+        return addr
+    }
+
+    getWaitQueueSendIdx(addr: number): number {
+        return this.getByteAtOffset(addr, WAIT_QUEUE_SEND_IDX_OFFSET);
+    }
+
+    setWaitQueueSendIdx(addr: number, value: number): void {
+        this.setByteAtOffset(addr, WAIT_QUEUE_SEND_IDX_OFFSET, value);
+    }
+
+    getWaitQueueRecvIdx(addr: number): number {
+        return this.getByteAtOffset(addr, WAIT_QUEUE_RECV_IDX_OFFSET);
+    }
+
+    setWaitQueueRecvIdx(addr: number, value: number): void {
+        this.setByteAtOffset(addr, WAIT_QUEUE_RECV_IDX_OFFSET, value);
+    }
+
+    getWaitQueueSize(addr: number): number {
+        return this.getByteAtOffset(addr, WAIT_QUEUE_QSIZE_OFFSET);
+    }
+
+    setWaitQueueSize(addr: number, value: number): void {
+        this.setByteAtOffset(addr, WAIT_QUEUE_QSIZE_OFFSET, value);
+    }
+
+    addToWaitQueue(addr: number, goroutineId: number): void {
+        if (this.getWaitQueueSize(addr) === NODE_SIZE - 1) {
+            throw new Error("WaitQueue is full");
+        }
+        const sendIdx = this.getWaitQueueSendIdx(addr);
+        const newSendIdx = (sendIdx + 1) % (NODE_SIZE - 1);
+        this.setWaitQueueSendIdx(addr, newSendIdx);
+
+        const size = this.getWaitQueueSize(addr);
+        this.setWaitQueueSize(addr, size + 1);
+
+        this.setChild(addr, sendIdx, goroutineId);
+    }
+
+    popFromWaitQueue(addr: number): number {
+        if (this.getWaitQueueSize(addr) === 0) {
+            throw new Error("WaitQueue is empty");
+        }
+
+        const recvIdx = this.getWaitQueueRecvIdx(addr);
+        const newRecvIdx = (recvIdx + 1) % (NODE_SIZE - 1);
+        this.setWaitQueueRecvIdx(addr, newRecvIdx);
+
+        const size = this.getWaitQueueSize(addr);
+        this.setWaitQueueSize(addr, size - 1);
+
+        return this.getChild(addr, recvIdx);
+    }
     
     /*
      * Boxing and unboxing functions
@@ -411,6 +596,8 @@ export default class Memory {
                 return false;
             case Tag.Int:
                 return this.getIntValue(addr);
+            case Tag.IntChannel:
+                return addr;
             default:
                 throw new Error("Unsupported type");
         }
