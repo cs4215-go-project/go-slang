@@ -90,7 +90,6 @@ export default class Memory {
         this.heapSize = numWords;
         if (this.heapSize % NODE_SIZE !== 0) {
             const msg: string = "numWords must be a multiple of " + NODE_SIZE;
-            // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
             throw new Error(msg);
         }
 
@@ -101,6 +100,8 @@ export default class Memory {
         
         this.freeIndex = 0;
         this.heapBottom = 0;
+        this.allocating = [];
+        this.goroutineContexts = undefined;
     
         // initialize free list
         for (let i = 0; i < this.heapSize - NODE_SIZE; i += NODE_SIZE) {
@@ -195,8 +196,12 @@ export default class Memory {
             throw new Error("Invalid node size");
         }
 
+        if (this.freeIndex > 500) {
+            console.log("allocating", Tag[tag], "with size", size, "at free index", this.freeIndex)
+        }
+
         if (this.freeIndex === -1) {
-            console.log("Running garbage collection!");
+            console.log("Running garbage collection!", "allocating", Tag[tag], "size", size);
             this.markSweep();
             if (this.freeIndex === -1) {
                 throw new Error("Heap exhausted");
@@ -275,6 +280,10 @@ export default class Memory {
         return this.getChild(addr, 0);
     }
 
+    setIntValue(addr: number, value: number): void {
+        this.setChild(addr, 0, value);
+    }
+
     /* 
      * allocate closure
      * [tag, size, marked, arity, pc, pc, pc, pc][env (only child)]
@@ -309,7 +318,7 @@ export default class Memory {
      * [tag, size, marked, _ , pc, pc, pc, pc][env (only child)]
      */
     allocateCallframe(pc: number, env: number): number {
-        this.allocating = [env];
+        this.allocating.push(env);
         const addr: number = this.allocateNode(Tag.Callframe, 2);
         this.allocating = [];
 
@@ -387,24 +396,27 @@ export default class Memory {
     }
 
     /*
-     * need an efficient implementation of a circular queue
-     * need head and tail pointers
-     * [tag, size, marked, sendIdx, recvIdx, close, qsize, capacity][sendq][recvq][...buffered items]
-     * note: max capacity is 13 (16 - 1 - 2)
+     * Int channel allocation
+     * [tag, size, marked, sendIdx, recvIdx, close, qsize, capacity][sendq][recvq][...buffered ints]
+     * note: max capacity is 13 (NODE_SIZE - 1 (tag) - 2(wait queues))
      */
     allocateIntChannel(capacity: number): number {
-        const addr: number = this.allocateNode(Tag.IntChannel, capacity + 1 + 2);
-        this.setByteAtOffset(addr, SEND_IDX_OFFSET, 0);
-        this.setByteAtOffset(addr, RECV_IDX_OFFSET, 0);
-        this.setByteAtOffset(addr, CLOSE_OFFSET, 0);
-        this.setByteAtOffset(addr, QSIZE_OFFSET, 0);
-        this.setByteAtOffset(addr, CAPACITY_OFFSET, capacity);
+        const chanAddr: number = this.allocateNode(Tag.IntChannel, 1 + 2 + capacity);
+        
+        this.setByteAtOffset(chanAddr, SEND_IDX_OFFSET, 0);
+        this.setByteAtOffset(chanAddr, RECV_IDX_OFFSET, 0);
+        this.setByteAtOffset(chanAddr, CLOSE_OFFSET, 0);
+        this.setByteAtOffset(chanAddr, QSIZE_OFFSET, 0);
+        this.setByteAtOffset(chanAddr, CAPACITY_OFFSET, capacity);
+        
+        this.allocating = [chanAddr];
         const sendqAddr: number = this.allocateWaitQueue();
+        this.setChild(chanAddr, 0, sendqAddr);
         const recvqAddr: number = this.allocateWaitQueue();
-        this.setChild(addr, 0, sendqAddr);
-        this.setChild(addr, 1, recvqAddr);
+        this.setChild(chanAddr, 1, recvqAddr);
+        this.allocating = [];
 
-        return addr;
+        return chanAddr;
     }
 
     getIntChannelSendIdx(addr: number): number {
@@ -607,21 +619,23 @@ export default class Memory {
      * Mark sweep garbage collection functions
      */
     markSweep() {
-        const allRoots: number[] = [];
+        const allActiveRoots: number[] = [];
+
+        console.log(this.goroutineContexts, this.allocating, "in gc")
 
         for (let ctx of this.goroutineContexts.values()) {
-            allRoots.push(ctx.env);
-            allRoots.push(...ctx.opStack);
-            allRoots.push(...ctx.runtimeStack);
+            allActiveRoots.push(ctx.env);
+            allActiveRoots.push(...ctx.opStack);
+            allActiveRoots.push(...ctx.runtimeStack);
         }
 
         for (let addr of this.allocating) {
-            allRoots.push(addr);
+            allActiveRoots.push(addr);
         }
 
-        console.log("all roots", allRoots);
+        console.log("all roots", allActiveRoots.map((addr) => [addr, Tag[this.getTag(addr)]]));
 
-        for (const root of allRoots) {
+        for (const root of allActiveRoots) {
             this.mark(root);
         }
 
@@ -655,6 +669,9 @@ export default class Memory {
 
     free(addr: number) {
         console.log("Freeing", addr, Tag[this.getTag(addr)]);
+        if (this.getTag(addr) == Tag.Int) { 
+            console.log("Int value", this.getIntValue(addr));
+        }
         this.setWord(addr, this.freeIndex);
         this.freeIndex = addr;
     }

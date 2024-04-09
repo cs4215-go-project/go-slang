@@ -106,8 +106,9 @@ export class Machine {
             }
             
             const instr = this.instructions[this.pc++];
-            console.log(this.scheduler.currentGoroutine(), this.pc, instr)
+            console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc, "Instr:", instr)
             this.execute(instr);
+            console.log(this.goroutineContexts);
             this.remainingTimeSlice--;
         }
 
@@ -132,7 +133,7 @@ export class Machine {
     }
 
     saveGoroutineContext(): void {
-        console.log(this.goroutineContexts)
+        // console.log(this.goroutineContexts, "in context switching")
         this.goroutineContexts.set(this.scheduler.currentGoroutine(), {
             env: this.env,
             pc: this.pc,
@@ -151,7 +152,6 @@ export class Machine {
     }
 
     execute(instr: Instruction): void {
-        console.log("instr", instr)
         switch (instr.opcode) {
             case "LDC": {
                 const addr = this.memory.box(instr.value);
@@ -232,11 +232,11 @@ export class Machine {
                 this.runtimeStack.push(blockframeAddr);
 
                 const newFrameAddr = this.memory.allocateFrame(instr.numDeclarations);
-                this.env = this.memory.extendEnv(this.env, newFrameAddr);
-
                 for (let i = 0; i < instr.numDeclarations; i++) {
                     this.memory.setChild(newFrameAddr, i, this.memory.literals[Tag.Unassigned]); // unassigned
                 }
+                
+                this.env = this.memory.extendEnv(this.env, newFrameAddr);
                 break;
             }
             case "EXIT_SCOPE": {
@@ -274,13 +274,14 @@ export class Machine {
                 }
 
                 const newPc = this.memory.getClosurePc(closureAddr);
-                console.log("NEW PC", newPc)
-                const newFrameAddr = this.memory.allocateFrame(arity);
 
+                const newFrameAddr = this.memory.allocateFrame(arity);
                 for (let i = arity - 1; i >= 0; i--) {
                     const arg = this.opStack.pop();
                     this.memory.setChild(newFrameAddr, i, arg);
                 }
+
+                this.memory.allocating = [newFrameAddr];
                 
                 // pc has already been incremented by pc++ in run(), so we can push this value
                 const callframeAddr = this.memory.allocateCallframe(this.pc, this.env);

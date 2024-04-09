@@ -217,8 +217,8 @@ func main() {
     func main() {
         ch := make(chan int, 2)
         {
-            const z = 10
-            const k = 20
+            const z = 6
+            const k = 9
         }
         var x = 10
         go func(y int) {
@@ -232,7 +232,7 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = parseCompileAndRun(544, input, setOutputStub);
     console.log(result);
     expect(result).toBe(60);
   });
