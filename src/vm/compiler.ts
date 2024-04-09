@@ -1,6 +1,6 @@
-import { Assignment, BinaryExpr, Block, BooleanLiteral, ConstDecl, ConstSpec, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, CloseExpression, ConstDecl, ConstSpec, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
-const builtins = ["println", "panic", "sleep", "make", "max", "min", ]
+const builtins = ["println", "panic", "sleep", "make", "close", "max", "min"]
 
 type CompileTimeEnvironment = string[][];
 
@@ -267,16 +267,16 @@ const compileComp = {
         instrs[wc++] = { opcode: "LDC", value: comp.capacity };
         instrs[wc++] = { opcode: "CALL", arity: 1 };
     },
+    "CloseExpression": (comp: CloseExpression, cte: CompileTimeEnvironment) => {
+        compileHelper({type: "Identifier", name: "close"} as Identifier, cte);
+        compileHelper(comp.channel, cte);
+        instrs[wc++] = { opcode: "CALL", arity: 1 };
+    },
     "SendStatement": (comp: SendStatement, cte: CompileTimeEnvironment) => {
         compileHelper(comp.channel, cte);
         compileHelper(comp.value, cte);
         instrs[wc++] = { opcode: "SEND" };
     }
-}
-
-enum ChanType {
-    INT,
-    BOOL
 }
 
 export function compileHelper (node: GoNodeBase, cte: CompileTimeEnvironment) {

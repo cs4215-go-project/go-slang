@@ -171,13 +171,18 @@ export interface VarSpec extends GoNodeBase {
 }
 
 // TODO: add function call
-export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | FunctionCall | MakeExpression;
+export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | FunctionCall | MakeExpression | CloseExpression;
 
 // only support make chan
 export interface MakeExpression extends GoNodeBase {
   type: "MakeExpression";
   dataType: DataType;
   capacity: number;
+}
+
+export interface CloseExpression extends GoNodeBase {
+  type: "CloseExpression";
+  channel: Expression;
 }
 
 export interface FunctionCall extends GoNodeBase {

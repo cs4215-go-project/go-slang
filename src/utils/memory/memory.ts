@@ -475,10 +475,15 @@ export default class Memory {
     // [    3 1 8    ]
     // increment r
     receiveFromIntChannel(addr: number): number {
+        const isBufferedChan = this.getIntChannelCapacity(addr) > 0;
         if (this.getIntChannelClose(addr) === 1) {
-            throw new Error("cannot read from closed channel");
+            throw new Error("panic: read from closed channel");
         }
-        if (this.getIntChannelQSize(addr) === 0) {
+        if (isBufferedChan && this.getIntChannelQSize(addr) === 0) {
+            return -1;
+        }
+        const sendqAddr = this.getIntChannelSendQueue(addr)
+        if (!isBufferedChan && this.getWaitQueueSize(sendqAddr) == 0) {
             return -1;
         }
 
@@ -493,11 +498,16 @@ export default class Memory {
     }
 
     sendToIntChannel(addr: number, value: number): boolean {
+        const isBufferedChan = this.getIntChannelCapacity(addr) > 0;
         if (this.getIntChannelClose(addr) === 1) {
-            throw new Error("cannot send to closed channel");
+            throw new Error("panic: send on closed channel");
         }
-        console.log(this.getIntChannelCapacity(addr))
-        if (this.getIntChannelQSize(addr) === this.getIntChannelCapacity(addr)) {
+
+        if (isBufferedChan && this.getIntChannelQSize(addr) === this.getIntChannelCapacity(addr)) {
+            return false;
+        }
+        const recvqAddr = this.getIntChannelRecvQueue(addr)
+        if (!isBufferedChan && this.getWaitQueueSize(recvqAddr) == 0) {
             return false;
         }
 

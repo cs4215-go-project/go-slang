@@ -53,6 +53,8 @@ export class Machine {
     private scheduler: Scheduler;
     private remainingTimeSlice: number;
 
+    private mainDone: boolean;
+
     constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
 
@@ -88,6 +90,8 @@ export class Machine {
 
         this.scheduler = new FIFOScheduler();
         this.remainingTimeSlice = undefined;
+
+        this.mainDone = false;
     }
 
     run(): any {  
@@ -98,7 +102,7 @@ export class Machine {
             // TODO: error when deadlock
             console.log("current goroutine", this.scheduler.currentGoroutine())
             console.log("remaining time slice", this.remainingTimeSlice)
-            if (this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
+            if (!this.mainDone && this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
                 console.log("prev", this.scheduler.currentGoroutine())
                 // context switch due to time slice expiration, not blocked
                 this.contextSwitch(false);
@@ -205,6 +209,9 @@ export class Machine {
                 const operand = this.memory.unbox(opAddr);
 
                 const result = this.executeUnaryOp(instr.operator, operand);
+                if (result === undefined) {
+                    break;
+                }
                 const resultAddr = this.memory.box(result);
 
                 this.opStack.push(resultAddr);
@@ -266,9 +273,10 @@ export class Machine {
             case "CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
-
+                console.log("CALL", this.memory.getTag(closureAddr), closureAddr)
                 if (this.memory.getTag(closureAddr) === Tag.Builtin) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
+                    console.log("builtinId", builtinId)
                     this.applyBuiltin(builtinId);
                     return;
                 }
@@ -351,6 +359,7 @@ export class Machine {
             case "STOP_GOROUTINE": {
                 // if it's main, then we're done
                 if (this.scheduler.currentGoroutine() === 0) {
+                    this.mainDone = true;
                     return;
                 }
 
@@ -448,7 +457,7 @@ export class Machine {
         }
     }
 
-    executeUnaryOp(op: string, operand: Literal): Literal {
+    executeUnaryOp(op: string, operand: Literal): Literal | undefined {
         switch (op) {
             case "-":
                 if (typeof operand !== 'number') {
@@ -462,7 +471,7 @@ export class Machine {
                 return !operand;
             case "<-":
                 const chan = operand as number;
-
+                console.log(chan)
                 const val = this.memory.receiveFromIntChannel(chan)
                 if (val === -1) {
                     // empty channel, block goroutine
@@ -470,7 +479,7 @@ export class Machine {
                     this.contextSwitch(true);
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
                     this.memory.addToWaitQueue(recvq, g);
-                    return; // ???
+                    return undefined; // ???
                 } else {
                     const sendq = this.memory.getIntChannelSendQueue(chan);
                     if (this.memory.getWaitQueueSize(sendq) !== 0) {
@@ -528,6 +537,18 @@ export class Machine {
                     console.log("make channel", chanAddr)
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(chanAddr);
+                },
+                arity: 1,
+            },
+            close: {
+                func: () => {
+                    const chanAddr = this.opStack.pop();
+                    console.log("close channel", chanAddr)
+                    if (this.memory.getTag(chanAddr) !== Tag.IntChannel) {
+                        throw new Error("close() only implemented for channels");
+                    }
+                    this.memory.setIntChannelClose(chanAddr, 1);
+                    this.opStack.pop(); // pop closure address
                 },
                 arity: 1,
             },
@@ -590,9 +611,10 @@ export class Machine {
                 id: id,
                 arity: this.builtinImpls[key].arity,
             };
-
+            
             this.builtins[id++] = this.builtinImpls[key].func;
         }
+        console.log("meta", this.builtinMetadata)
     }
 
     applyBuiltin(builtinId: number): void {
