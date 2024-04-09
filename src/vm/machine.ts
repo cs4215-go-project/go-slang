@@ -18,7 +18,7 @@ export default function parseCompileAndRun(memSize: number, input: string, setOu
     }
 }
 
-type GoroutineContext = {
+export type GoroutineContext = {
     env: number,
     pc: number,
     opStack: number[],
@@ -83,10 +83,8 @@ export class Machine {
         // set heap bottom after allocating literals and builtins
         this.memory.heapBottom = this.memory.freeIndex;
 
-        // done allocating roots, set roots for garbage collection
-        this.memory.machineRoots = [this.opStack, this.runtimeStack, [this.env]];
-
         this.goroutineContexts = new Map<GoroutineId, GoroutineContext>();
+        this.memory.goroutineContexts = this.goroutineContexts;
 
         this.scheduler = new FIFOScheduler();
         this.remainingTimeSlice = undefined;
@@ -155,6 +153,9 @@ export class Machine {
             case "BINOP": {
                 const rightOpAddr = this.opStack.pop();
                 const leftOpAddr = this.opStack.pop();
+
+                console.log("left", leftOpAddr, "right", rightOpAddr);
+                console.log("left type", Tag[this.memory.getTag(leftOpAddr)], "right type", Tag[this.memory.getTag(rightOpAddr)]);
 
                 const left = this.memory.unbox(leftOpAddr);
                 const right = this.memory.unbox(rightOpAddr);

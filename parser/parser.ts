@@ -175,6 +175,8 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitForStmt(ctx.forStmt());
     } else if (ctx.goStmt() != null) {
       return this.visitGoStmt(ctx.goStmt());
+    } else if (ctx.block() != null) {
+      return this.visitBlock(ctx.block());
     }
 
     throw new Error("Not implemented");

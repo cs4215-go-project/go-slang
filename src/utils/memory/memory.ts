@@ -14,7 +14,8 @@
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
-import { BuiltinMetadata } from "../../vm/machine";
+import { BuiltinMetadata, GoroutineContext } from "../../vm/machine";
+import { GoroutineId } from "../../vm/scheduler";
 
 export const WORD_SIZE: number = 8; // bytes
 export const NODE_SIZE: number = 16; // words
@@ -68,7 +69,8 @@ export default class Memory {
     public freeIndex: number;
     public heapBottom: number;
     public allocating: number[];
-    public machineRoots: number[][];
+
+    public goroutineContexts: Map<GoroutineId, GoroutineContext>;
 
     constructor(numWords: number) {
         // for equally-sized nodes; TODO: can maybe pass in num_nodes as constructor argument
@@ -85,7 +87,6 @@ export default class Memory {
         
         this.freeIndex = 0;
         this.heapBottom = 0;
-        this.machineRoots = [];
     
         // initialize free list
         for (let i = 0; i < this.heapSize - NODE_SIZE; i += NODE_SIZE) {
@@ -384,7 +385,6 @@ export default class Memory {
 
     // allocates an object in memory and returns its address
     box(obj: any): number {
-        console.log(obj)
         if (typeof obj === "boolean") {
             return obj ? this.literals[Tag.True] : this.literals[Tag.False];
         } else if (obj === null) {
@@ -420,7 +420,20 @@ export default class Memory {
      * Mark sweep garbage collection functions
      */
     markSweep() {
-        const allRoots: number[] = [...this.machineRoots.flat(), ...this.allocating];
+        const allRoots: number[] = [];
+
+        for (let ctx of this.goroutineContexts.values()) {
+            allRoots.push(ctx.env);
+            allRoots.push(...ctx.opStack);
+            allRoots.push(...ctx.runtimeStack);
+        }
+
+        for (let addr of this.allocating) {
+            allRoots.push(addr);
+        }
+
+        console.log("all roots", allRoots);
+
         for (const root of allRoots) {
             this.mark(root);
         }
@@ -454,6 +467,7 @@ export default class Memory {
     }
 
     free(addr: number) {
+        console.log("Freeing", addr, Tag[this.getTag(addr)]);
         this.setWord(addr, this.freeIndex);
         this.freeIndex = addr;
     }

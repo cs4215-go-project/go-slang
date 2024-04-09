@@ -216,6 +216,10 @@ func main() {
 
     func main() {
         ch := make(chan int, 2)
+        {
+            const z = 10
+            const k = 20
+        }
         var x = 10
         go func(y int) {
             // ch <- y + 1
@@ -228,7 +232,7 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = parseCompileAndRun(768, input, setOutputStub);
     // expect(result).toBe(10);
     console.log(result);
   });
