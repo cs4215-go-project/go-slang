@@ -35,22 +35,22 @@ export class Machine {
 
     // machine state
     private pc: number;
-    private opStack: number[];
-    private runtimeStack: number[];
+    public opStack: number[];
+    public runtimeStack: number[];
 
     // memory
     private memory: Memory;
 
-    private env: number;
+    public env: number;
 
     // builtin variables
     private builtinImpls: {};
     private builtinMetadata: BuiltinMetadata;
     private builtins: {};
 
-    private goroutineContexts: Map<GoroutineId, GoroutineContext>
+    public goroutineContexts: Map<GoroutineId, GoroutineContext>
 
-    private scheduler: Scheduler;
+    public scheduler: Scheduler;
     private remainingTimeSlice: number;
 
     private mainDone: boolean;
@@ -84,9 +84,9 @@ export class Machine {
 
         // set heap bottom after allocating literals and builtins
         this.memory.heapBottom = this.memory.freeIndex;
+        this.memory.machine = this;
 
         this.goroutineContexts = new Map<GoroutineId, GoroutineContext>();
-        this.memory.goroutineContexts = this.goroutineContexts;
 
         this.scheduler = new FIFOScheduler();
         this.remainingTimeSlice = undefined;

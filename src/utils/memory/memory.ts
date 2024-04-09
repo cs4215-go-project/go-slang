@@ -14,7 +14,7 @@
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
-import { BuiltinMetadata, GoroutineContext } from "../../vm/machine";
+import { BuiltinMetadata, GoroutineContext, Machine } from "../../vm/machine";
 import { GoroutineId } from "../../vm/scheduler";
 
 export const WORD_SIZE: number = 8; // bytes
@@ -84,7 +84,7 @@ export default class Memory {
     public heapBottom: number;
     public allocating: number[];
 
-    public goroutineContexts: Map<GoroutineId, GoroutineContext>;
+    public machine: Machine;
 
     constructor(numWords: number) {
         this.heapSize = numWords;
@@ -101,7 +101,6 @@ export default class Memory {
         this.freeIndex = 0;
         this.heapBottom = 0;
         this.allocating = [];
-        this.goroutineContexts = undefined;
     
         // initialize free list
         for (let i = 0; i < this.heapSize - NODE_SIZE; i += NODE_SIZE) {
@@ -196,12 +195,8 @@ export default class Memory {
             throw new Error("Invalid node size");
         }
 
-        if (this.freeIndex > 500) {
-            console.log("allocating", Tag[tag], "with size", size, "at free index", this.freeIndex)
-        }
-
         if (this.freeIndex === -1) {
-            console.log("Running garbage collection!", "allocating", Tag[tag], "size", size);
+            console.log("Running garbage collection while allocating", Tag[tag]);
             this.markSweep();
             if (this.freeIndex === -1) {
                 throw new Error("Heap exhausted");
@@ -629,19 +624,7 @@ export default class Memory {
      * Mark sweep garbage collection functions
      */
     markSweep() {
-        const allActiveRoots: number[] = [];
-
-        console.log(this.goroutineContexts, this.allocating, "in gc")
-
-        for (let ctx of this.goroutineContexts.values()) {
-            allActiveRoots.push(ctx.env);
-            allActiveRoots.push(...ctx.opStack);
-            allActiveRoots.push(...ctx.runtimeStack);
-        }
-
-        for (let addr of this.allocating) {
-            allActiveRoots.push(addr);
-        }
+        const allActiveRoots: number[] = this.computeRoots();
 
         console.log("all roots", allActiveRoots.map((addr) => [addr, Tag[this.getTag(addr)]]));
 
@@ -650,6 +633,31 @@ export default class Memory {
         }
 
         this.sweep();
+    }
+
+    computeRoots(): number[] {
+        const allActiveRoots: number[] = [];
+        const contexts = this.machine.goroutineContexts;
+        const currentGoroutineId = this.machine.scheduler.currentGoroutine();
+        
+        // we do this because the current goroutine's roots might not be up to date with that in the contexts map
+        // note: we do this for env only because it is passed by value to the map
+        // opstack and runtime stack are passed by reference so their values are always up to date
+        for (let [g, ctx] of contexts.entries()) {
+            if (g !== currentGoroutineId) {
+                allActiveRoots.push(ctx.env);
+            } else {
+                allActiveRoots.push(this.machine.env);
+            }
+            allActiveRoots.push(...ctx.opStack);
+            allActiveRoots.push(...ctx.runtimeStack);
+        }
+
+        for (let addr of this.allocating) {
+            allActiveRoots.push(addr);
+        }
+
+        return allActiveRoots;
     }
 
     mark(addr: number) {
