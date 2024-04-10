@@ -26,7 +26,7 @@ export class FIFOScheduler implements Scheduler {
         return this.readyQueue.length + this.blockedQueue.length + (this.currentGoroutineId === undefined ? 0 : 1)
     }
 
-    currentGoroutine(): number {
+    currentGoroutine(): GoroutineId {
         return this.currentGoroutineId
     }
 
