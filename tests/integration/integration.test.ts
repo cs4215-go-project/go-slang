@@ -216,18 +216,16 @@ func main() {
 
     func main() {
         ch := make(chan int, 2)
-        {
-            const z = 6
-            const k = 9
-        }
         var x = 10
         go func(y int) {
             ch <- y * 2
             ch <- y * 3
             ch <- y * 3
         }(x)
-        <-ch
+        z := <-ch
+        println(z)
         y := <-ch
+        println(y)
         return y + <-ch
     }
             `;
@@ -236,6 +234,36 @@ func main() {
     console.log(result);
     expect(result).toBe(60);
   });
+
+  test("go func buffered full send", async () => {
+    const input = `
+    package main
+
+    func main() {
+        ch := make(chan int, 2)
+        var x = 10
+        go func(y int) {
+            ch <- y * 2
+            ch <- y * 3
+            [20, 30]
+            ch <- y * 4 //
+        }(x)
+
+        sleep(2000)
+        
+        z := <-ch // this wakes up the third send
+        println(z)
+        y := <-ch
+        println(y)
+
+        return y + <-ch // this is the one that reads -1
+    }
+            `;
+
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(70);
+  }, 10000);
 
   test("go func closed channel", async () => {
     const input = `

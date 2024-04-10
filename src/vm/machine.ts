@@ -116,7 +116,7 @@ export class Machine {
             const instr = this.instructions[this.pc++];
             console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc, "Instr:", instr)
             await this.execute(instr);
-            console.log(this.goroutineContexts);
+            // console.log(this.goroutineContexts);
             this.remainingTimeSlice--;
         }
 
@@ -208,15 +208,23 @@ export class Machine {
                 // so it will always enter this if block
                 if (!this.memory.sendToIntChannel(chan, value)) {
                     // full channel, block goroutine
+                    this.opStack.push(valueAddr); // push value back to op stack, for receiver (who will wake this goroutine up) to send to queue
                     const g = this.scheduler.currentGoroutine();
                     await this.contextSwitch(true);
                     const sendq = this.memory.getIntChannelSendQueue(chan);
                     this.memory.addToWaitQueue(sendq, g);
+                    console.log("pushed to op stack", valueAddr)
                 } else {
                     // wake up waiting receiver
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
                     if (this.memory.getWaitQueueSize(recvq) !== 0) {
                         const g = this.memory.popFromWaitQueue(recvq);
+                        this.goroutineContexts.get(g).opStack.push(valueAddr); // push value to receiver's op stack
+                        
+                        const sendIdx = this.memory.getIntChannelSendIdx(chanAddr);
+                        const newSendIdx = (sendIdx + 1) % this.memory.getIntChannelCapacity(chanAddr);
+                        this.memory.setIntChannelSendIdx(chanAddr, newSendIdx);
+
                         this.scheduler.wakeUpGoroutine(g);
                     }
                 }
@@ -493,19 +501,23 @@ export class Machine {
                 return !operand;
             case "<-":
                 const chan = operand as number;
-                console.log(chan)
                 const val = this.memory.receiveFromIntChannel(chan)
+                console.log("received", val)
                 if (val === -1) {
                     // empty channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
                     await this.contextSwitch(true);
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
                     this.memory.addToWaitQueue(recvq, g);
-                    return undefined; // ???
+                    return undefined; // dont push to op stack!
                 } else {
                     const sendq = this.memory.getIntChannelSendQueue(chan);
                     if (this.memory.getWaitQueueSize(sendq) !== 0) {
                         const g = this.memory.popFromWaitQueue(sendq);
+                        // we know: g was blocked, it wanted to send sentVal (top of its stack)
+                        const sentVal = this.goroutineContexts.get(g).opStack.pop();
+                        console.log("sentVal", sentVal)
+                        this.memory.sendToIntChannel(chan, this.memory.unbox(sentVal));
                         this.scheduler.wakeUpGoroutine(g);
                     }
                 }
