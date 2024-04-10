@@ -262,23 +262,26 @@ func main() {
     func main() {
         var i int = 0
         var j int = 0
+        var k int = 0
         for i < 5 {
             i++
             for j < 5 {
                 j++
                 if j == 4 {
                     break
+                } else {
+                    k++
                 }
             }
             if i == 2 {
                 break
             }
         }
-        return i + j
+        return i + j + k
     }
             `;
     const result = await parseCompileAndRun(2048, input, setOutputStub);
-    expect(result).toBe(7);
+    expect(result).toBe(11);
 });
 
   test("go func basic", async () => {

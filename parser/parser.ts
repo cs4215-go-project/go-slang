@@ -5,8 +5,10 @@ import GoParser, {
   AssignmentContext,
   BasicLitContext,
   BlockContext,
+  BreakStmtContext,
   ConstDeclContext,
   ConstSpecContext,
+  ContinueStmtContext,
   DeclarationContext,
   ExpressionContext,
   ExpressionListContext,
@@ -39,8 +41,10 @@ import {
   Assignment,
   BasicLiteral,
   Block,
+  BreakStatement,
   ConstDecl,
   ConstSpec,
+  ContinueStatement,
   Declaration,
   DeclareAssign,
   Expression,
@@ -177,6 +181,10 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
       return this.visitGoStmt(ctx.goStmt());
     } else if (ctx.block() != null) {
       return this.visitBlock(ctx.block());
+    } else if (ctx.breakStmt() != null) {
+      return this.visitBreakStmt(ctx.breakStmt());
+    } else if (ctx.continueStmt() != null) {
+      return this.visitContinueStmt(ctx.continueStmt());
     }
 
     throw new Error("Not implemented");
@@ -199,6 +207,20 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
     };
   };
 
+  visitBreakStmt = (ctx: BreakStmtContext): BreakStatement => {
+    return {
+      type: "BreakStatement",
+      //   position: getPosition(ctx),
+    };
+  }
+
+  visitContinueStmt = (ctx: ContinueStmtContext): ContinueStatement => {
+    return {
+      type: "ContinueStatement",
+      //   position: getPosition(ctx),
+    };
+  }
+
   visitReturnStmt = (ctx: ReturnStmtContext): ReturnStatement => {
     return {
       type: "ReturnStatement",
@@ -210,7 +232,14 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   visitIfStmt = (ctx: IfStmtContext): IfStatement => {
     // we don't support if x := f(); x < y { ... }
 
-    let elseBranch = undefined;
+    let elseBranch: Block | IfStatement = {
+      type: "Block",
+      statementList: {
+        type: "StatementList",
+        statements: [],
+      },
+    };
+
     // else if
     if (ctx.ifStmt() != null) {
       elseBranch = this.visitIfStmt(ctx.ifStmt());
