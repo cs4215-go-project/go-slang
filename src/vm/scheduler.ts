@@ -67,6 +67,7 @@ export class FIFOScheduler implements Scheduler {
         } else {
             // ready is empty, but blocked is not
             // so do nothing?
+            return null
         }
     }
 

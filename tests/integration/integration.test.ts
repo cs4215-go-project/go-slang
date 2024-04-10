@@ -6,7 +6,7 @@ const setOutputStub = (output: any) => {
 };
 
 describe("end to end", () => {
-  test("addition", () => {
+  test("addition", async () => {
     const input = `
 package main
 
@@ -15,12 +15,12 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     console.log(result)
     expect(result).toBe(51);
   });
 
-  test("-10", () => {
+  test("-10", async () => {
     const input = `
 package main
 
@@ -29,11 +29,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(-10);
   });
 
-  test("const", () => {
+  test("const", async () => {
     const input = `
 package main
 
@@ -44,11 +44,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(30);
   });
 
-  test("var", () => {
+  test("var", async () => {
     const input = `
 package main
 
@@ -60,11 +60,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(31);
   });
 
-  test("identifier", () => {
+  test("identifier", async () => {
     const input = `
 package main
 
@@ -75,11 +75,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(10);
   });
 
-  test("conditional false", () => {
+  test("conditional false", async () => {
     const input = `
 package main
 
@@ -95,11 +95,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(10);
   });
 
-  test("conditional true", () => {
+  test("conditional true", async () => {
     const input = `
 package main
 
@@ -114,11 +114,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(20);
   });
 
-  test("conditional else if", () => {
+  test("conditional else if", async () => {
     const input = `
 package main
 
@@ -135,11 +135,11 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(5);
   });
 
-  test("func basic", () => {
+  test("func basic", async () => {
     const input = `
 package main
 
@@ -149,12 +149,12 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(7);
   });
 
-  test("func decl", () => {
+  test("func decl", async () => {
     const input = `
 package main
 
@@ -167,12 +167,12 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(7);
   });
 
-  test("func multiple", () => {
+  test("func multiple", async () => {
     const input = `
 package main
 
@@ -188,12 +188,12 @@ func main() {
 }
         `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(11);
   });
 
-  test("loop", () => {
+  test("loop", async () => {
     const input = `
     package main
 
@@ -206,11 +206,11 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(2048, input, setOutputStub);
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     expect(result).toBe(3);
   });
 
-  test("go func basic", () => {
+  test("go func basic", async () => {
     const input = `
     package main
 
@@ -232,12 +232,12 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(624, input, setOutputStub);
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
     expect(result).toBe(60);
   });
 
-  test("go func closed channel", () => {
+  test("go func closed channel", async () => {
     const input = `
     package main
 
@@ -251,11 +251,29 @@ func main() {
         <-ch
     }
             `;
-    const result = parseCompileAndRun(2048, input, setOutputStub)
-    console.log(result);
+    const result = await parseCompileAndRun(2048, input, setOutputStub)
+    expect(result.message).toBe("panic: send on closed channel");
   });
 
-  test("closeee", () => {
+  test("sleep", async () => {
+    const input = `
+    package main
+
+    func main() {
+        go func() {
+            sleep(1000)
+            println(100)
+        }()
+        sleep(5000)
+        println(10)
+    }
+            `;
+    const result = await parseCompileAndRun(2048, input, setOutputStub)
+    // expect(result).toBe(10);
+    console.log(result)
+  }, 10000);
+
+  test("closeee", async () => {
     const input = `
     package main
 
@@ -265,11 +283,11 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     console.log(result)
   });
 
-  test("builtin max", () => {
+  test("builtin max", async () => {
     const input = `
     package main
 
@@ -278,11 +296,11 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(3);
   });
 
-  test("builtin min", () => {
+  test("builtin min", async () => {
     const input = `
     package main
 
@@ -291,7 +309,7 @@ func main() {
     }
             `;
 
-    const result = parseCompileAndRun(512, input, setOutputStub);
+    const result = await parseCompileAndRun(512, input, setOutputStub);
     expect(result).toBe(2);
   });
 });

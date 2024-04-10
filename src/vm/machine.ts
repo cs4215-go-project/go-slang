@@ -6,13 +6,13 @@ import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 
-export default function parseCompileAndRun(memSize: number, input: string, setOutput: (output: any) => void): any {
+export default async function parseCompileAndRun(memSize: number, input: string, setOutput: (output: any) => void): Promise<any> {
     try {
         const parsed = parse(input);
         console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
         console.log(instructions);
-        return new Machine(memSize, instructions, setOutput).run();
+        return await new Machine(memSize, instructions, setOutput).run();
     } catch (e) {
         return e;
     }
@@ -55,6 +55,8 @@ export class Machine {
 
     private mainDone: boolean;
 
+    private sleeping: Promise<number>[];
+
     constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
 
@@ -92,9 +94,11 @@ export class Machine {
         this.remainingTimeSlice = undefined;
 
         this.mainDone = false;
+
+        this.sleeping = [];
     }
 
-    run(): any {  
+    async run(): Promise<any> {  
         while (this.instructions[this.pc].opcode !== "DONE") {
             if (this.remainingTimeSlice && this.remainingTimeSlice < 0) {
                 throw new Error("Negative time slice")
@@ -105,13 +109,13 @@ export class Machine {
             if (!this.mainDone && this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
                 console.log("prev", this.scheduler.currentGoroutine())
                 // context switch due to time slice expiration, not blocked
-                this.contextSwitch(false);
+                await this.contextSwitch(false);
                 console.log("curr", this.scheduler.currentGoroutine())
             }
             
             const instr = this.instructions[this.pc++];
             console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc, "Instr:", instr)
-            this.execute(instr);
+            await this.execute(instr);
             console.log(this.goroutineContexts);
             this.remainingTimeSlice--;
         }
@@ -124,13 +128,28 @@ export class Machine {
         return this.scheduler.numBlockedGoroutine() === this.scheduler.numGoroutine();
     }
 
-    contextSwitch(isBlocked: boolean): void {
+    async waitForSleeping(): Promise<[number, number]> {
+        const idx = await Promise.race(this.sleeping);
+        this.sleeping.splice(idx, 1);
+        console.log("after rm", this.sleeping)
+        const g = this.scheduler.runNextGoroutine();
+        console.log("next after await promise", g)
+        return g;
+    }
+
+    async contextSwitch(isBlocked: boolean): Promise<void> {
         this.saveGoroutineContext();
         this.scheduler.interruptGoroutine(isBlocked);
 
-        const g = this.scheduler.runNextGoroutine();
+        let g = this.scheduler.runNextGoroutine();
+        console.log("next", g)
         if (g === null) {
-            throw new Error("no goroutine to run next")
+            console.log("sleeping", this.sleeping)
+            if (this.sleeping.length === 0) {
+                throw new Error("no goroutine to run next")
+            }
+
+            g = await this.waitForSleeping();
         }
 
         this.restoreGoroutineContext(g);
@@ -155,7 +174,7 @@ export class Machine {
         this.runtimeStack = gctx.runtimeStack;
     }
 
-    execute(instr: Instruction): void {
+    async execute(instr: Instruction): Promise<void> {
         switch (instr.opcode) {
             case "LDC": {
                 const addr = this.memory.box(instr.value);
@@ -190,7 +209,7 @@ export class Machine {
                 if (!this.memory.sendToIntChannel(chan, value)) {
                     // full channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
-                    this.contextSwitch(true);
+                    await this.contextSwitch(true);
                     const sendq = this.memory.getIntChannelSendQueue(chan);
                     this.memory.addToWaitQueue(sendq, g);
                 } else {
@@ -208,7 +227,7 @@ export class Machine {
                 const opAddr = this.opStack.pop();
                 const operand = this.memory.unbox(opAddr);
 
-                const result = this.executeUnaryOp(instr.operator, operand);
+                const result = await this.executeUnaryOp(instr.operator, operand);
                 if (result === undefined) {
                     break;
                 }
@@ -277,7 +296,7 @@ export class Machine {
                 if (this.memory.getTag(closureAddr) === Tag.Builtin) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
                     console.log("builtinId", builtinId)
-                    this.applyBuiltin(builtinId);
+                    await this.applyBuiltin(builtinId);
                     return;
                 }
 
@@ -307,7 +326,7 @@ export class Machine {
 
                 if (this.memory.getTag(closureAddr) === Tag.Builtin) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
-                    this.applyBuiltin(builtinId);
+                    await this.applyBuiltin(builtinId);
                     return;
                 }
 
@@ -364,9 +383,12 @@ export class Machine {
                 }
 
                 this.scheduler.terminateGoroutine(this.scheduler.currentGoroutine());
-                const g = this.scheduler.runNextGoroutine();
+                let g = this.scheduler.runNextGoroutine();
                 if (g === null) {
-                    throw new Error("no goroutine to run next")
+                    if (this.sleeping.length === 0) {
+                        throw new Error("no goroutine to run next")
+                    }
+                    g = await this.waitForSleeping();
                 }
 
                 this.restoreGoroutineContext(g);
@@ -457,7 +479,7 @@ export class Machine {
         }
     }
 
-    executeUnaryOp(op: string, operand: Literal): Literal | undefined {
+    async executeUnaryOp(op: string, operand: Literal): Promise<Literal | undefined> {
         switch (op) {
             case "-":
                 if (typeof operand !== 'number') {
@@ -476,7 +498,7 @@ export class Machine {
                 if (val === -1) {
                     // empty channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
-                    this.contextSwitch(true);
+                    await this.contextSwitch(true);
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
                     this.memory.addToWaitQueue(recvq, g);
                     return undefined; // ???
@@ -515,10 +537,23 @@ export class Machine {
                 arity: 1,
             },
             sleep: {
-                func: () => {
+                func: async () => {
                     const addr = this.opStack.pop();
                     const duration = this.memory.unbox(addr);
-                    new Promise(resolve => setTimeout(resolve, duration));
+                    console.log("sleep", duration)
+
+                    // block
+                    const g = this.scheduler.currentGoroutine();
+                    const len = this.sleeping.length;
+                    this.sleeping.push(new Promise<number>((resolve, reject) => {
+                        setTimeout(() => {
+                            this.scheduler.wakeUpGoroutine(g);
+                            resolve(len);
+                        }, duration)
+                    }))
+                    console.log("added", this.sleeping)
+
+                    await this.contextSwitch(true);
                 },
                 arity: 1,
             },
@@ -617,7 +652,7 @@ export class Machine {
         console.log("meta", this.builtinMetadata)
     }
 
-    applyBuiltin(builtinId: number): void {
-        this.builtins[builtinId]();
+    async applyBuiltin(builtinId: number): Promise<void> {
+        await this.builtins[builtinId]();
     }
 }
