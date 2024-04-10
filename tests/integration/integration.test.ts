@@ -245,8 +245,7 @@ func main() {
         go func(y int) {
             ch <- y * 2
             ch <- y * 3
-            [20, 30]
-            ch <- y * 4 //
+            ch <- y * 4
         }(x)
 
         sleep(2000)
