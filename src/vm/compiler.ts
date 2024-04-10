@@ -1,4 +1,4 @@
-import { Assignment, BinaryExpr, Block, BooleanLiteral, CloseExpression, ConstDecl, ConstSpec, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
+import { Assignment, BinaryExpr, Block, BooleanLiteral, BreakStatement, CloseExpression, ConstDecl, ConstSpec, ContinueStatement, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
 const builtins = ["println", "panic", "sleep", "make", "close", "max", "min"]
 
@@ -46,12 +46,30 @@ export type Instruction = {
 }
 
 let wc: number;
-let instrs: Instruction[]
+let instrs: Instruction[];
 // a compile-time environment is an array of
 // compile-time frames, and a compile-time frame
 // is an array of symbols
 let cte: CompileTimeEnvironment;
-const globalCompileFrame = [] // TODO: add built-in functions
+const globalCompileFrame = []; // TODO: add built-in functions
+
+// placeholder instruction
+type NOPInstruction = {
+    opcode: "NOP",
+    [key: string]: any;
+}
+
+let startLocations: number[] = [];
+let endLocations: NOPInstruction[] = [];
+
+function resolveBreakTargets() {
+    for (const instr of instrs) {
+        if (instr.opcode === "GOTO" && instr.nopInstr) {
+            instr.targetInstr = instr.nopInstr.targetInstr;
+            delete instr.nopInstr;
+        }
+    }
+}
 
 const compileComp = {
     "SourceFile": (comp: SourceFile, cte: CompileTimeEnvironment) => {
@@ -234,14 +252,37 @@ const compileComp = {
     },
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
         const loopStart = wc;
+        startLocations.push(loopStart);
+        const loopEnd: NOPInstruction = { opcode: "NOP", targetInstr: undefined };
+        endLocations.push(loopEnd);
+
         compileHelper(comp.condition, cte);
         const jof = { opcode: "JOF", targetInstr: undefined };
         instrs[wc++] = jof;
+
         compileHelper(comp.body, cte);
         instrs[wc++] = { opcode: "POP" };
         instrs[wc++] = { opcode: "GOTO", targetInstr: loopStart };
+
         jof.targetInstr = wc;
+        loopEnd.targetInstr = wc;
+
         instrs[wc++] = { opcode: "LDC", value: undefined }
+
+        startLocations.pop();
+        endLocations.pop();
+    },
+    "BreakStatement": (comp: BreakStatement, cte: CompileTimeEnvironment) => {
+        if (endLocations.length === 0) {
+            throw new Error("Break statement outside of loop");
+        }
+        instrs[wc++] = { opcode: "GOTO", targetInstr: undefined, nopInstr: endLocations[endLocations.length - 1] };
+    },
+    "ContinueStatement": (comp: ContinueStatement, cte: CompileTimeEnvironment) => {
+        if (startLocations.length === 0) {
+            throw new Error("Continue statement outside of loop");
+        }
+        instrs[wc++] = { opcode: "GOTO", targetInstr: startLocations[startLocations.length - 1] };
     },
     "IncDecStatement": (comp: IncDecStatement, cte: CompileTimeEnvironment) => {
         compileHelper(comp.expression, cte);
@@ -291,6 +332,7 @@ export function compile(sourceFile: SourceFile) : Instruction[] {
 
     compileHelper(sourceFile, cte);
     instrs[wc] = ({ opcode: "DONE" });
+    resolveBreakTargets();
     return instrs;
 }
 

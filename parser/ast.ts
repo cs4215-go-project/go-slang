@@ -72,7 +72,7 @@ export interface StatementList extends GoNodeBase {
   statements: Statement[];
 }
 
-export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | GoStatement | SendStatement | DeclareAssign | Block;
+export type Statement = Declaration | SimpleStatement | IfStatement | ReturnStatement | ForStatement | BreakStatement | ContinueStatement | GoStatement | SendStatement | DeclareAssign | Block;
 
 export interface SendStatement extends GoNodeBase {
   type: "SendStatement";
@@ -98,6 +98,13 @@ export interface ForStatement extends GoNodeBase {
   body: Block;
 }
 
+export interface BreakStatement extends GoNodeBase {
+  type: "BreakStatement";
+}
+
+export interface ContinueStatement extends GoNodeBase {
+  type: "ContinueStatement";
+}
 
 export interface IfStatement extends GoNodeBase {
   type: "IfStatement";

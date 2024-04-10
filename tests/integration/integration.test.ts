@@ -210,6 +210,77 @@ func main() {
     expect(result).toBe(3);
   });
 
+  test("loop break", async () => {
+    const input = `
+    package main
+
+    func main() {
+        var i int = 0
+        for i < 5 {
+            i++
+            if i == 2 {
+                break
+            } else {
+
+            }
+        }
+        return i
+    }
+            `;
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    expect(result).toBe(2);
+  });
+
+  test("loop continue", async () => {
+    const input = `
+    package main
+
+    func main() {
+        var i int = 0
+        var j int = 0
+        for i < 5 {
+            i++
+            if i % 2 == 1 {
+                continue
+            } else {
+
+            }
+            j++
+        }
+        return j
+    }
+            `;
+
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    expect(result).toBe(2);
+  });
+
+  test("loop nested break", async () => {
+    const input = `
+    package main
+
+    func main() {
+        var i int = 0
+        var j int = 0
+        for i < 5 {
+            i++
+            for j < 5 {
+                j++
+                if j == 4 {
+                    break
+                }
+            }
+            if i == 2 {
+                break
+            }
+        }
+        return i + j
+    }
+            `;
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    expect(result).toBe(7);
+});
+
   test("go func basic", async () => {
     const input = `
     package main
