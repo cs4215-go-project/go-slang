@@ -31,7 +31,6 @@ export class Machine {
 
     // for printing output to frontend (React's setState)
     public setOutput: (output: any) => void;
-    public programOutput: any[];
 
     // machine state
     private pc: number;
@@ -62,8 +61,7 @@ export class Machine {
 
         // frontend
         this.setOutput = setOutput;
-        this.programOutput = [];
-        this.setOutput(this.programOutput);
+        this.setOutput([]);
 
         // machine state
         this.pc = 0;
@@ -535,8 +533,7 @@ export class Machine {
                 func: () => {
                     const addr = this.opStack.pop();
                     const valueToPrint = this.memory.unbox(addr);
-                    this.programOutput.push(String(valueToPrint));
-                    this.setOutput(this.programOutput);
+                    this.setOutput(prevOutput => [...prevOutput, String(valueToPrint)]);
                     this.opStack.pop(); // pop closure address
                 },
                 arity: 1,
