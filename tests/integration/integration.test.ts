@@ -329,7 +329,7 @@ func main() {
         y := <-ch
         println(y)
 
-        return y + <-ch // this is the one that reads -1
+        return y + <-ch
     }
             `;
 
@@ -337,6 +337,29 @@ func main() {
     console.log(result);
     expect(result).toBe(70);
   }, 10000);
+
+  test("go func func call", async () => {
+    const input = `
+    package main
+
+    func send(ch chan int) { 
+        ch <- 10
+    }
+
+    func main() {
+        ch := make(chan int)
+        go send(ch)
+
+        // sleep(1000)
+
+        return <-ch
+    }
+            `;
+
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result);
+    expect(result).toBe(10);
+  }, 3000);
 
   test("go func closed channel", async () => {
     const input = `

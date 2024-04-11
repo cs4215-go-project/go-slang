@@ -121,6 +121,7 @@ export class Machine {
         }
 
         const resultAddress = this.opStack.pop();
+        console.log("resultAddress", resultAddress)
         return this.memory.unbox(resultAddress);
     }
 
@@ -208,23 +209,21 @@ export class Machine {
                 // so it will always enter this if block
                 if (!this.memory.sendToIntChannel(chan, value)) {
                     // full channel, block goroutine
-                    this.opStack.push(valueAddr); // push value back to op stack, for receiver (who will wake this goroutine up) to send to queue
                     const g = this.scheduler.currentGoroutine();
                     await this.contextSwitch(true);
                     const sendq = this.memory.getIntChannelSendQueue(chan);
-                    this.memory.addToWaitQueue(sendq, g);
-                    console.log("pushed to op stack", valueAddr)
+                    this.memory.addToWaitQueue(sendq, g, valueAddr);
                 } else {
                     // wake up waiting receiver
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
                     if (this.memory.getWaitQueueSize(recvq) !== 0) {
-                        const g = this.memory.popFromWaitQueue(recvq);
-                        this.goroutineContexts.get(g).opStack.push(valueAddr); // push value to receiver's op stack
-                        
-                        const sendIdx = this.memory.getIntChannelSendIdx(chanAddr);
-                        const newSendIdx = (sendIdx + 1) % this.memory.getIntChannelCapacity(chanAddr);
-                        this.memory.setIntChannelSendIdx(chanAddr, newSendIdx);
-
+                        const [g, _] = this.memory.popFromWaitQueue(recvq);
+                        // send value to receiver's op stack
+                        if (this.memory.getIntChannelCapacity(chan) === 0) {
+                            this.goroutineContexts.get(g).opStack.push(valueAddr);
+                        } else {
+                            this.goroutineContexts.get(g).opStack.push(this.memory.receiveFromIntChannel(chan));
+                        }
                         this.scheduler.wakeUpGoroutine(g);
                     }
                 }
@@ -501,24 +500,26 @@ export class Machine {
                 return !operand;
             case "<-":
                 const chan = operand as number;
-                const val = this.memory.receiveFromIntChannel(chan)
+                let val = this.memory.receiveFromIntChannel(chan)
                 console.log("received", val)
                 if (val === -1) {
                     // empty channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
                     await this.contextSwitch(true);
                     const recvq = this.memory.getIntChannelRecvQueue(chan);
-                    this.memory.addToWaitQueue(recvq, g);
+                    this.memory.addToWaitQueue(recvq, g, -1); // -1 means it's a receive operation?
                     return undefined; // dont push to op stack!
                 } else {
                     const sendq = this.memory.getIntChannelSendQueue(chan);
                     if (this.memory.getWaitQueueSize(sendq) !== 0) {
-                        const g = this.memory.popFromWaitQueue(sendq);
-                        // we know: g was blocked, it wanted to send sentVal (top of its stack)
-                        const sentVal = this.goroutineContexts.get(g).opStack.pop();
-                        console.log("sentVal", sentVal)
-                        this.memory.sendToIntChannel(chan, this.memory.unbox(sentVal));
+                        const [g, sentValAddr] = this.memory.popFromWaitQueue(sendq);
                         this.scheduler.wakeUpGoroutine(g);
+
+                        if (this.memory.getIntChannelCapacity(chan) === 0) {
+                            val = this.memory.unbox(sentValAddr);
+                        } else {
+                            this.memory.sendToIntChannel(chan, this.memory.unbox(sentValAddr));
+                        }
                     }
                 }
 

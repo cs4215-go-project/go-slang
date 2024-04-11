@@ -184,6 +184,25 @@ export default class Memory {
                 ? 0 
                 : this.getSize(index) - 1;
     }
+    
+    // 0     4
+    // [    ][    ]
+    //   4b    4b
+    getFirstFourBytesOfChild(index: number, childIndex: number): number {
+        return this.getFourBytesAtOffset(index + childIndex + 1, 0);
+    }
+
+    setFirstFourBytesOfChild(index: number, childIndex: number, value: number): void {
+        this.setFourBytesAtOffset(index + childIndex + 1, 0, value);
+    }
+
+    getSecondFourBytesOfChild(index: number, childIndex: number): number {
+        return this.getFourBytesAtOffset(index + childIndex + 1, 4);
+    }
+
+    setSecondFourBytesOfChild(index: number, childIndex: number, value: number): void {
+        this.setFourBytesAtOffset(index + childIndex + 1, 4, value);
+    }
 
     /*
      * Allocator functions
@@ -552,7 +571,7 @@ export default class Memory {
         this.setByteAtOffset(addr, WAIT_QUEUE_QSIZE_OFFSET, value);
     }
 
-    addToWaitQueue(addr: number, goroutineId: number): void {
+    addToWaitQueue(addr: number, goroutineId: number, valAddr: number): void {
         if (this.getWaitQueueSize(addr) === NODE_SIZE - 1) {
             throw new Error("WaitQueue is full");
         }
@@ -563,10 +582,13 @@ export default class Memory {
         const size = this.getWaitQueueSize(addr);
         this.setWaitQueueSize(addr, size + 1);
 
-        this.setChild(addr, sendIdx, goroutineId);
+        // NOTE: if it is bigger than 4 bytes, it will set to 0 (no error checking for now)
+        this.setFirstFourBytesOfChild(addr, sendIdx, goroutineId);
+        this.setSecondFourBytesOfChild(addr, sendIdx, valAddr);
     }
 
-    popFromWaitQueue(addr: number): number {
+    // returns pair of [goroutineId, valueAddr]
+    popFromWaitQueue(addr: number): [number, number] {
         if (this.getWaitQueueSize(addr) === 0) {
             throw new Error("WaitQueue is empty");
         }
@@ -578,7 +600,9 @@ export default class Memory {
         const size = this.getWaitQueueSize(addr);
         this.setWaitQueueSize(addr, size - 1);
 
-        return this.getChild(addr, recvIdx);
+        const g = this.getFirstFourBytesOfChild(addr, recvIdx);
+        const valueAddr = this.getSecondFourBytesOfChild(addr, recvIdx);
+        return [g, valueAddr]
     }
     
     /*
