@@ -51,6 +51,10 @@ const WAIT_QUEUE_SEND_IDX_OFFSET: number = 3;
 const WAIT_QUEUE_RECV_IDX_OFFSET: number = 4;
 const WAIT_QUEUE_QSIZE_OFFSET: number = 5;
 
+// waitgroup offsets
+const WAIT_GROUP_COUNTER_OFFSET: number = 3;
+const WAIT_GROUP_NUM_WAITERS_OFFSET: number = 4;
+
 // Golang type tags
 export enum Tag {
     Nil,
@@ -66,6 +70,7 @@ export enum Tag {
     Closure,
     IntChannel,
     WaitQueue,
+    WaitGroup,
 }
 
 export enum MarkedStatus {
@@ -611,7 +616,57 @@ export default class Memory {
         const valueAddr = this.getSecondFourBytesOfChild(addr, recvIdx);
         return [g, valueAddr]
     }
-    
+
+    // [tag, size, marked, counter, numWaiters][...goroutine IDs (waiting)]
+    allocateWaitGroup() {
+        const addr = this.allocateNode(Tag.WaitGroup, 1);
+        this.setByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, 0);
+        this.setByteAtOffset(addr, WAIT_GROUP_NUM_WAITERS_OFFSET, 0);
+        return addr;
+    }
+
+    getWaitGroupCounter(addr: number): number {
+        return this.getByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET);
+    }
+
+    setWaitGroupCounter(addr: number, value: number) {
+        if (value > 255) {
+            throw new Error("Counter value too large");
+        }
+        this.setByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, value);
+    }
+
+    getWaitGroupNumWaiters(addr: number): number {
+        return this.getByteAtOffset(addr, WAIT_GROUP_NUM_WAITERS_OFFSET);
+    }
+
+    setWaitGroupNumWaiters(addr: number, value: number) {
+        this.setByteAtOffset(addr, WAIT_GROUP_NUM_WAITERS_OFFSET, value);
+    }
+
+    getWaitGroupWaiters(addr: number): number[] {
+        const size = this.getWaitGroupNumWaiters(addr);
+        const waiters: number[] = [];
+        for (let i = 0; i < size; i++) {
+            waiters.push(this.getChild(addr, i));
+        }
+        // reset waiters
+        this.setWaitGroupNumWaiters(addr, 0);
+
+        return waiters;
+    }
+
+    addWaitGroupWaiter(addr: number, goroutineId: number) {
+        const size = this.getWaitGroupNumWaiters(addr);
+
+        if (size === NODE_SIZE - 1) {
+            throw new Error("WaitGroup is full");
+        }
+
+        this.setChild(addr, size, goroutineId);
+        this.setWaitGroupNumWaiters(addr, size + 1);
+    }
+
     /*
      * Boxing and unboxing functions
      */

@@ -610,13 +610,22 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitVarSpec = (ctx: VarSpecContext): VarSpec => {
-    return {
-      type: "VarSpec",
-      //   position: getPosition(ctx),
-      identifierList: this.visitIdentifierList(ctx.identifierList()),
-      dataType: ctx.type_()?.getText(),
-      expressionList: this.visitExpressionList(ctx.expressionList()),
-    };
+    if (ctx.expressionList() !== null) {
+      return {
+        type: "VarSpec",
+        //   position: getPosition(ctx),
+        identifierList: this.visitIdentifierList(ctx.identifierList()),
+        dataType: ctx.type_()?.getText(),
+        expressionList: this.visitExpressionList(ctx.expressionList()),
+      };
+    } else {
+      return {
+        type: "VarSpec",
+        //   position: getPosition(ctx),
+        identifierList: this.visitIdentifierList(ctx.identifierList()),
+        dataType: ctx.type_()?.getText(),
+      };
+    }
   };
 
   visitOperand = (ctx: OperandContext): Operand => {

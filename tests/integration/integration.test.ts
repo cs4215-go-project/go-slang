@@ -382,6 +382,22 @@ func main() {
     expect(result.message).toBe("panic: send on closed channel");
   });
 
+  test("waitgroup basic", async () => {
+    const input = `
+    package main
+
+    func main() {
+        var wg WaitGroup
+        var x = 0
+        wgDone(wg)
+        return x
+    }
+            `;
+    const result = await parseCompileAndRun(2048, input, setOutputStub)
+    console.log(result)
+    expect(result).toBe(2);
+  });
+
   test("sleep", async () => {
     const input = `
     package main

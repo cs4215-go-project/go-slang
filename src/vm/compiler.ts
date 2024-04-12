@@ -1,6 +1,6 @@
 import { Assignment, BinaryExpr, Block, BooleanLiteral, BreakStatement, CloseExpression, ConstDecl, ConstSpec, ContinueStatement, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
-const builtins = ["println", "panic", "sleep", "make", "close", "max", "min"]
+const builtins = ["println", "panic", "sleep", "make", "close", "max", "min", "wgAdd", "wgDone", "wgWait"]
 
 type CompileTimeEnvironment = string[][];
 
@@ -207,7 +207,18 @@ const compileComp = {
         console.log("CTE", cte)
         for (const spec of comp.specs) {
             for (let i = 0; i < spec.identifierList.identifiers.length; i++) {
-                compileHelper(spec.expressionList.expressions[i], cte);
+                if (spec.dataType === "WaitGroup" && spec.expressionList)  {
+                    throw new Error("WaitGroup cannot be initialized with an expression")
+                }
+
+                if (spec.expressionList) {
+                    compileHelper(spec.expressionList.expressions[i], cte);
+                }
+
+                if (spec.dataType === "WaitGroup") {
+                    instrs[wc++] = { opcode: "MAKE_WAITGROUP" }
+                }
+                
                 instrs[wc++] = {
                     opcode: "ASSIGN",
                     compilePos: compileTimeEnvironmentPosition(cte, spec.identifierList.identifiers[i].name)

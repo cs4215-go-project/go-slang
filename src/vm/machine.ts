@@ -145,7 +145,7 @@ export class Machine {
         if (g === null) {
             console.log("sleeping", this.sleeping)
             if (this.sleeping.length === 0) {
-                throw new Error("no goroutine to run next")
+                throw new Error("fatal error: all goroutines are asleep - deadlock!")
             }
 
             g = await this.waitForSleeping();
@@ -421,13 +421,18 @@ export class Machine {
                 let g = this.scheduler.runNextGoroutine();
                 if (g === null) {
                     if (this.sleeping.length === 0) {
-                        throw new Error("no goroutine to run next")
+                        throw new Error("fatal error: all goroutines are asleep - deadlock!")
                     }
                     g = await this.waitForSleeping();
                 }
 
                 this.restoreGoroutineContext(g);
 
+                break
+            }
+            case "MAKE_WAITGROUP": {
+                const wgAddr = this.memory.allocateWaitGroup();
+                this.opStack.push(wgAddr);
                 break
             }
             default:
@@ -645,6 +650,57 @@ export class Machine {
                     }
                 },
                 arity: 2,
+            },
+            wgAdd: {
+                func: () => {
+                    const delta = this.memory.unbox(this.opStack.pop());
+                    const wgAddr = this.opStack.pop();
+                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+                        throw new Error("wgAdd() only allowed for WaitGroup");
+                    }
+                    this.memory.setWaitGroupCounter(wgAddr, this.memory.getWaitGroupCounter(wgAddr) + delta);
+                    this.opStack.pop(); // pop closure address
+                },
+                arity: 2,
+            },
+            wgDone: {
+                func: () => {
+                    const wgAddr = this.opStack.pop();
+                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+                        throw new Error("wgDone() only allowed for WaitGroup");
+                    }
+                    const newCounter = this.memory.getWaitGroupCounter(wgAddr) - 1;
+                    if (newCounter < 0) {
+                        throw new Error("panic: negative WaitGroup counter");
+                    }
+                    if (newCounter === 0) {
+                        const wgq = this.memory.getWaitGroupWaiters(wgAddr);
+                        for (const g of wgq) {
+                            this.scheduler.wakeUpGoroutine(g);
+                        }
+                        return;
+                    }
+
+                    this.memory.setWaitGroupCounter(wgAddr, newCounter);
+                    this.opStack.pop(); // pop closure address
+                },
+                arity: 1,
+            },
+            wgWait: {
+                func: () => {
+                    const wgAddr = this.opStack.pop()
+                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+                        throw new Error("wgWait() only allowed for WaitGroup");
+                    }
+                    if (this.memory.getWaitGroupCounter(wgAddr) === 0) {
+                        return;
+                    }
+
+                    const g = this.scheduler.currentGoroutine();
+                    this.memory.addWaitGroupWaiter(wgAddr, g);
+                    this.contextSwitch(true);
+                },
+                arity: 1,
             },
         }
     }
