@@ -518,7 +518,7 @@ export default class Memory {
         return this.getIntFromChannel(addr, recvIdx);
     }
 
-    sendToIntChannel(addr: number, value: number): boolean {
+    sendToIntChannel(addr: number, valueAddr: number): boolean {
         const isBufferedChan = this.getIntChannelCapacity(addr) > 0;
         if (this.getIntChannelClose(addr) === 1) {
             throw new Error("panic: send on closed channel");
@@ -539,7 +539,7 @@ export default class Memory {
         const size = this.getIntChannelQSize(addr);
         this.setIntChannelQSize(addr, size + 1);
 
-        this.setIntInChannel(addr, sendIdx, value);
+        this.setIntInChannel(addr, sendIdx, valueAddr);
         return true
     }
 

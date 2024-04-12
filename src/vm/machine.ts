@@ -61,7 +61,7 @@ export class Machine {
 
         // frontend
         this.setOutput = setOutput;
-        this.setOutput([]);
+        this.setOutput((prevOutput) => []);
 
         // machine state
         this.pc = 0;
@@ -205,7 +205,7 @@ export class Machine {
 
                 // if channel is unbuffered, a send will block until a receive,
                 // so it will always enter this if block
-                if (!this.memory.sendToIntChannel(chan, value)) {
+                if (!this.memory.sendToIntChannel(chan, valueAddr)) {
                     // full channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
                     await this.contextSwitch(true);
@@ -226,6 +226,36 @@ export class Machine {
                     }
                 }
 
+                break;
+            }
+            case "RECV": {
+                const chanAddr = this.opStack.pop();
+                const chan = this.memory.unbox(chanAddr);
+
+                let valueAddr = this.memory.receiveFromIntChannel(chan)
+                console.log("received", valueAddr)
+                if (valueAddr === -1) {
+                    // empty channel, block goroutine
+                    const g = this.scheduler.currentGoroutine();
+                    await this.contextSwitch(true);
+                    const recvq = this.memory.getIntChannelRecvQueue(chan);
+                    this.memory.addToWaitQueue(recvq, g, -1); // -1 means it's a receive operation?
+                    return undefined; // dont push to op stack!
+                } else {
+                    const sendq = this.memory.getIntChannelSendQueue(chan);
+                    if (this.memory.getWaitQueueSize(sendq) !== 0) {
+                        const [g, sentValAddr] = this.memory.popFromWaitQueue(sendq);
+                        this.scheduler.wakeUpGoroutine(g);
+
+                        if (this.memory.getIntChannelCapacity(chan) === 0) {
+                            valueAddr = sentValAddr;
+                        } else {
+                            this.memory.sendToIntChannel(chan, sentValAddr);
+                        }
+                    }
+                }
+
+                this.opStack.push(valueAddr);
                 break;
             }
             case "UNOP": {
@@ -496,32 +526,6 @@ export class Machine {
                     throw new Error(`Operator ${op} cannot be applied to type ${typeof operand}`);
                 }
                 return !operand;
-            case "<-":
-                const chan = operand as number;
-                let val = this.memory.receiveFromIntChannel(chan)
-                console.log("received", val)
-                if (val === -1) {
-                    // empty channel, block goroutine
-                    const g = this.scheduler.currentGoroutine();
-                    await this.contextSwitch(true);
-                    const recvq = this.memory.getIntChannelRecvQueue(chan);
-                    this.memory.addToWaitQueue(recvq, g, -1); // -1 means it's a receive operation?
-                    return undefined; // dont push to op stack!
-                } else {
-                    const sendq = this.memory.getIntChannelSendQueue(chan);
-                    if (this.memory.getWaitQueueSize(sendq) !== 0) {
-                        const [g, sentValAddr] = this.memory.popFromWaitQueue(sendq);
-                        this.scheduler.wakeUpGoroutine(g);
-
-                        if (this.memory.getIntChannelCapacity(chan) === 0) {
-                            val = this.memory.unbox(sentValAddr);
-                        } else {
-                            this.memory.sendToIntChannel(chan, this.memory.unbox(sentValAddr));
-                        }
-                    }
-                }
-
-                return val;
             default:
                 throw new Error("Unknown unary operator: " + op);
         }

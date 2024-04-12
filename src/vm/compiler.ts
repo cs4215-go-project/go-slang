@@ -179,6 +179,10 @@ const compileComp = {
     },
     "UnaryExpr": (comp: UnaryExpr, cte: CompileTimeEnvironment) => {
         compileHelper(comp.expr, cte);
+        if (comp.operator === "<-") {
+            instrs[wc++] = { opcode: "RECV" };
+            return;
+        }
         instrs[wc++] = ({ opcode: "UNOP", operator: comp.operator });
     },
     "IntegerLiteral": (comp: IntegerLiteral, cte: CompileTimeEnvironment) => {

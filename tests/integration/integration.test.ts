@@ -1,8 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import parseCompileAndRun from "../../src/vm/machine";
 
+let arr = []
 const setOutputStub = (output: any) => {
-    console.log(output.join("\n"));
+    arr = output(arr)
+    console.log(arr.join('\n'))
 };
 
 describe("end to end", () => {
@@ -300,13 +302,13 @@ func main() {
         println(z)
         y := <-ch
         println(y)
-        return y + <-ch
+        return y + z + <-ch
     }
             `;
 
     const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result);
-    expect(result).toBe(60);
+    expect(result).toBe(80);
   });
 
   test("go func buffered full send", async () => {
@@ -342,7 +344,8 @@ func main() {
     const input = `
     package main
 
-    func send(ch chan int) { 
+    func send(ch chan int) {
+        println(10)
         ch <- 10
     }
 
