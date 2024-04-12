@@ -87,12 +87,19 @@ export default class Memory {
     public machine: Machine;
 
     constructor(numWords: number) {
-        this.heapSize = numWords;
-        if (this.heapSize % NODE_SIZE !== 0) {
+        
+        // addresses can only be held in 4 bytes (due to WaitQueue)
+        if (numWords > 2**32) {
+            throw new Error("numWords must be less than 2^32");
+        }
+        
+        if (numWords % NODE_SIZE !== 0) {
             const msg: string = "numWords must be a multiple of " + NODE_SIZE;
             throw new Error(msg);
         }
 
+        this.heapSize = numWords;
+        
         this.data = new ArrayBuffer(this.heapSize * WORD_SIZE);
         this.view = new DataView(this.data);
 
@@ -215,7 +222,7 @@ export default class Memory {
         }
 
         if (this.freeIndex === -1) {
-            console.log("Running garbage collection while allocating", Tag[tag]);
+            // console.log("Running garbage collection while allocating", Tag[tag]);
             this.markSweep();
             if (this.freeIndex === -1) {
                 throw new Error("Heap exhausted");
@@ -582,7 +589,7 @@ export default class Memory {
         const size = this.getWaitQueueSize(addr);
         this.setWaitQueueSize(addr, size + 1);
 
-        // NOTE: if it is bigger than 4 bytes, it will set to 0 (no error checking for now)
+        // NOTE: if valAddr is bigger than 2**32 (4 bytes), DataView.set will sets it to 0 
         this.setFirstFourBytesOfChild(addr, sendIdx, goroutineId);
         this.setSecondFourBytesOfChild(addr, sendIdx, valAddr);
     }
@@ -650,7 +657,7 @@ export default class Memory {
     markSweep() {
         const allActiveRoots: number[] = this.computeRoots();
 
-        console.log("all roots", allActiveRoots.map((addr) => [addr, Tag[this.getTag(addr)]]));
+        // console.log("all roots", allActiveRoots.map((addr) => [addr, Tag[this.getTag(addr)]]));
 
         for (const root of allActiveRoots) {
             this.mark(root);
@@ -710,10 +717,6 @@ export default class Memory {
     }
 
     free(addr: number) {
-        console.log("Freeing", addr, Tag[this.getTag(addr)]);
-        if (this.getTag(addr) == Tag.Int) { 
-            console.log("Int value", this.getIntValue(addr));
-        }
         this.setWord(addr, this.freeIndex);
         this.freeIndex = addr;
     }
