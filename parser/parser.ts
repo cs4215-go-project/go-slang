@@ -222,6 +222,14 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   }
 
   visitReturnStmt = (ctx: ReturnStmtContext): ReturnStatement => {
+    // empty return
+    if (ctx.expressionList() == null) {
+      return {
+        type: "ReturnStatement",
+        //   position: getPosition(ctx),
+        values: [],
+      };
+    }
     return {
       type: "ReturnStatement",
       //   position: getPosition(ctx),

@@ -146,6 +146,7 @@ const compileComp = {
 		instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: locals.length };
         if (comp.statementList.statements.length === 0) {
             instrs[wc++] = { opcode: "LDC", value: undefined};
+            instrs[wc++] = { opcode: "EXIT_SCOPE" };
             return
         }
         for (let i = 0; i < comp.statementList.statements.length; i++) {
@@ -261,7 +262,9 @@ const compileComp = {
         if (comp.values.length > 1) {
             throw new Error("Multiple return values not supported yet")
         }
-        compileHelper(comp.values[0], cte);
+        if (comp.values.length > 0) {
+            compileHelper(comp.values[0], cte);
+        }
         // TODO: support tail call optimization
         instrs[wc++] = { opcode: "RESET" };
     },

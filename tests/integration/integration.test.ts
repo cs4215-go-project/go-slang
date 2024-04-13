@@ -35,6 +35,50 @@ func main() {
     expect(result).toBe(-10);
   });
 
+  test("empty return", async () => {
+    const input = `
+package main
+
+func x() {
+    println(10)
+    return
+}
+
+func main() {
+    x()
+    return 1
+}
+        `;
+
+    const result = await parseCompileAndRun(1024, input, setOutputStub);
+    console.log(result)
+    expect(result).toBe(1);
+  });
+
+  test("early return", async () => {
+    const input = `
+package main
+
+func trueIfTwo(x int) int {
+    if x == 2 {
+        return 1
+    } else {
+        
+    }
+    println(101)
+    return 0
+}
+
+func main() {
+    println(trueIfTwo(3))
+    return trueIfTwo(2)
+}
+        `;
+
+    const result = await parseCompileAndRun(1024, input, setOutputStub);
+    expect(result).toBe(1);
+  });
+
   test("const", async () => {
     const input = `
 package main

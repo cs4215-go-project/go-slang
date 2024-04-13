@@ -540,10 +540,12 @@ export class Machine {
         this.builtinImpls = {
             println: {
                 func: () => {
+                    console.log(this.opStack.map(addr => this.memory.getTag(addr) === Tag.Int ? [addr, this.memory.unbox(addr)] : [addr]));
                     const addr = this.opStack.pop();
                     const valueToPrint = this.memory.unbox(addr);
                     this.setOutput(prevOutput => [...prevOutput, String(valueToPrint)]);
                     this.opStack.pop(); // pop closure address
+                    
                 },
                 arity: 1,
             },
