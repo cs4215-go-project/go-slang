@@ -105,14 +105,14 @@ export class Machine {
             console.log("current goroutine", this.scheduler.currentGoroutine())
             console.log("remaining time slice", this.remainingTimeSlice)
             if (!this.mainDone && this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
-                console.log("prev", this.scheduler.currentGoroutine())
+                console.log("prev goroutine", this.scheduler.currentGoroutine())
                 // context switch due to time slice expiration, not blocked
                 await this.contextSwitch(false);
-                console.log("curr", this.scheduler.currentGoroutine())
+                console.log("curr goroutine", this.scheduler.currentGoroutine())
             }
             
             const instr = this.instructions[this.pc++];
-            console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc, "Instr:", instr)
+            console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc - 1, "Instr:", instr)
             await this.execute(instr);
             // console.log(this.goroutineContexts);
             this.remainingTimeSlice--;
@@ -310,6 +310,7 @@ export class Machine {
                 if (this.memory.getTag(addr) === Tag.Unassigned) {
                     throw new Error("Variable '" + instr.sym + "' used before assignment");
                 }
+                console.log("LD addr", addr);
                 this.opStack.push(addr);
                 break
             }
@@ -545,7 +546,7 @@ export class Machine {
                     const valueToPrint = this.memory.unbox(addr);
                     this.setOutput(prevOutput => [...prevOutput, String(valueToPrint)]);
                     this.opStack.pop(); // pop closure address
-                    
+                    this.opStack.push(this.memory.box(undefined));
                 },
                 arity: 1,
             },
@@ -574,6 +575,9 @@ export class Machine {
                     }))
                     console.log("added", this.sleeping)
 
+                    this.opStack.pop(); // pop closure address
+                    this.opStack.push(this.memory.box(undefined));
+
                     await this.contextSwitch(true);
                 },
                 arity: 1,
@@ -581,7 +585,6 @@ export class Machine {
             make: {
                 func: () => {
                     // only for Go channels
-
                     const capacityAddr = this.opStack.pop();
                     const capacity = this.memory.unbox(capacityAddr);
                     
@@ -591,6 +594,7 @@ export class Machine {
 
                     const chanAddr = this.memory.allocateIntChannel(capacity);
                     console.log("make channel", chanAddr)
+
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(chanAddr);
                 },
@@ -604,7 +608,9 @@ export class Machine {
                         throw new Error("close() only implemented for channels");
                     }
                     this.memory.setIntChannelClose(chanAddr, 1);
+
                     this.opStack.pop(); // pop closure address
+                    this.opStack.push(this.memory.box(undefined));
                 },
                 arity: 1,
             },
@@ -620,6 +626,7 @@ export class Machine {
 
                     const left = this.memory.unbox(leftOpAddr);
                     const right = this.memory.unbox(rightOpAddr);
+
                     this.opStack.pop(); // pop closure address
 
                     if (left > right) {
@@ -643,6 +650,7 @@ export class Machine {
 
                     const left = this.memory.unbox(leftOpAddr);
                     const right = this.memory.unbox(rightOpAddr);
+
                     this.opStack.pop(); // pop closure address
 
                     if (left < right) {
@@ -661,7 +669,9 @@ export class Machine {
                         throw new Error("wgAdd() only allowed for WaitGroup");
                     }
                     this.memory.setWaitGroupCounter(wgAddr, this.memory.getWaitGroupCounter(wgAddr) + delta);
+
                     this.opStack.pop(); // pop closure address
+                    this.opStack.push(this.memory.box(undefined));
                 },
                 arity: 2,
             },
@@ -685,11 +695,12 @@ export class Machine {
 
                     this.memory.setWaitGroupCounter(wgAddr, newCounter);
                     this.opStack.pop(); // pop closure address
+                    this.opStack.push(this.memory.box(undefined));
                 },
                 arity: 1,
             },
             wgWait: {
-                func: () => {
+                func: async () => {
                     const wgAddr = this.opStack.pop()
                     if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
                         throw new Error("wgWait() only allowed for WaitGroup");
@@ -700,7 +711,11 @@ export class Machine {
 
                     const g = this.scheduler.currentGoroutine();
                     this.memory.addWaitGroupWaiter(wgAddr, g);
-                    this.contextSwitch(true);
+
+                    this.opStack.pop(); // pop closure address
+                    this.opStack.push(this.memory.box(undefined));
+
+                    await this.contextSwitch(true);
                 },
                 arity: 1,
             },

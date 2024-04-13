@@ -426,7 +426,7 @@ func main() {
     expect(result.message).toBe("panic: send on closed channel");
   });
 
-  test("waitgroup basic", async () => {
+  test("waitgroup panic", async () => {
     const input = `
     package main
 
@@ -437,9 +437,10 @@ func main() {
         return x
     }
             `;
-    const result = await parseCompileAndRun(2048, input, setOutputStub)
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result)
-    expect(result).toBe(2);
+    expect(result instanceof Error).toBe(true);
+    expect(result.message).toBe("panic: negative WaitGroup counter");
   });
 
   test("sleep", async () => {
