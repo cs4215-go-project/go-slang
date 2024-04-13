@@ -92,9 +92,9 @@ export interface ReturnStatement extends GoNodeBase {
 
 export interface ForStatement extends GoNodeBase {
   type: "ForStatement";
-  // init: SimpleStatement;
+  init?: Statement;
   condition: Expression;
-  // post: SimpleStatement;
+  post?: Statement;
   body: Block;
 }
 

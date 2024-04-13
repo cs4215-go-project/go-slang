@@ -35,6 +35,14 @@ function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
                     locals.push((expr as Identifier).name)
                 }
             }
+        } else if (decl.type === "ForStatement") {
+            if (decl.init && decl.init.type === "DeclareAssign") {
+                for (const expr of (decl.init as DeclareAssign).left) {
+                    if (expr.type === "Identifier") {
+                        locals.push((expr as Identifier).name)
+                    }
+                }
+            }
         }
     }
     return locals;
@@ -269,6 +277,11 @@ const compileComp = {
         instrs[wc++] = { opcode: "RESET" };
     },
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
+        if (comp.init !== undefined) {
+            instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: 1}
+            compileHelper(comp.init, cte);
+        }
+
         const loopStart = wc;
         startLocations.push(loopStart);
         const loopEnd: NOPInstruction = { opcode: "NOP", targetInstr: undefined };
@@ -280,10 +293,19 @@ const compileComp = {
 
         compileHelper(comp.body, cte);
         instrs[wc++] = { opcode: "POP" };
+        
+        if (comp.post !== undefined) {
+            compileHelper(comp.post, cte);
+        }
+
         instrs[wc++] = { opcode: "GOTO", targetInstr: loopStart };
 
         jof.targetInstr = wc;
         loopEnd.targetInstr = wc;
+        
+        if (comp.init !== undefined) {
+            instrs[wc++] = { opcode: "EXIT_SCOPE" };
+        }
 
         instrs[wc++] = { opcode: "LDC", value: undefined }
 

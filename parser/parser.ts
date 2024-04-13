@@ -199,12 +199,28 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitForStmt = (ctx: ForStmtContext): ForStatement => {
-    return {
-      type: "ForStatement",
-      //   position: getPosition(ctx),
-      condition: this.visitExpression(ctx.expression()),
-      body: this.visitBlock(ctx.block()),
-    };
+    
+    if (ctx.forClause() != null) {
+      return {
+        type: "ForStatement",
+        init: this.visitSimpleStmt(ctx.forClause()._initStmt),
+        condition: this.visitExpression(ctx.forClause().expression()),
+        post: this.visitSimpleStmt(ctx.forClause()._postStmt),
+        body: this.visitBlock(ctx.block()),
+      }
+    } else {
+      const booleanTrue = {
+        type: "BooleanLiteral",
+        value: true,
+      }
+
+      return {
+        type: "ForStatement",
+        //   position: getPosition(ctx),
+        condition: ctx.expression() ? this.visitExpression(ctx.expression()) : booleanTrue as Expression,
+        body: this.visitBlock(ctx.block()),
+      };
+    }
   };
 
   visitBreakStmt = (ctx: BreakStmtContext): BreakStatement => {
