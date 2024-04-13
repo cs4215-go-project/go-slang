@@ -273,8 +273,12 @@ const compileComp = {
         if (comp.values.length > 0) {
             compileHelper(comp.values[0], cte);
         }
-        // TODO: support tail call optimization
-        instrs[wc++] = { opcode: "RESET" };
+        
+        if (comp.values[0].type === "FunctionCall") {
+            instrs[wc - 1].opcode = "TAIL_CALL";
+        } else { 
+            instrs[wc++] = { opcode: "RESET" };
+        }
     },
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
         if (comp.init !== undefined) {

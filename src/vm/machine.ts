@@ -3,6 +3,8 @@ import Memory, { Tag } from "../utils/memory/memory";
 import {compile, Instruction} from "./compiler";
 import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";
 
+const MAX_STEPS = 100000;
+
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 
@@ -37,6 +39,7 @@ export class Machine {
     public opStack: number[];
     public runtimeStack: number[];
 
+    private numSteps: number;
     // memory
     private memory: Memory;
 
@@ -68,6 +71,8 @@ export class Machine {
         this.opStack = [];
         this.runtimeStack = [];
 
+        this.numSteps = 0;
+
         // memory
         this.memory = new Memory(numWords);
 
@@ -98,6 +103,10 @@ export class Machine {
 
     async run(): Promise<any> {  
         while (this.instructions[this.pc].opcode !== "DONE") {
+            if (this.numSteps++ > MAX_STEPS) {
+                throw new Error("maximum number of steps exceeded, potential infinite loop detected");
+            }
+
             if (this.remainingTimeSlice && this.remainingTimeSlice < 0) {
                 throw new Error("Negative time slice")
             }
@@ -359,20 +368,23 @@ export class Machine {
             case "TAIL_CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
-
+                // console.log("CALL", this.memory.getTag(closureAddr), closureAddr)
                 if (this.memory.getTag(closureAddr) === Tag.Builtin) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
+                    console.log("builtinId", builtinId)
                     await this.applyBuiltin(builtinId);
                     return;
                 }
 
                 const newPc = this.memory.getClosurePc(closureAddr);
-                const newFrameAddr = this.memory.allocateFrame(arity);
 
+                const newFrameAddr = this.memory.allocateFrame(arity);
                 for (let i = arity - 1; i >= 0; i--) {
                     const arg = this.opStack.pop();
                     this.memory.setChild(newFrameAddr, i, arg);
                 }
+
+                this.memory.allocating = [newFrameAddr];
 
                 this.opStack.pop(); // pop closure address
                 this.env = this.memory.extendEnv(this.memory.getClosureEnv(closureAddr), newFrameAddr);
@@ -394,7 +406,7 @@ export class Machine {
                 const g = this.scheduler.scheduleGoroutine();
                 if (this.scheduler.currentGoroutine() === undefined) {
                     const [_, timeSlice] = this.scheduler.runNextGoroutine();
-                    console.log("main goroutine starting", g, timeSlice)
+                    // console.log("main goroutine starting", g, timeSlice)
                     this.remainingTimeSlice = timeSlice
                 }
 
@@ -541,7 +553,6 @@ export class Machine {
         this.builtinImpls = {
             println: {
                 func: () => {
-                    console.log(this.opStack.map(addr => this.memory.getTag(addr) === Tag.Int ? [addr, this.memory.unbox(addr)] : [addr]));
                     const addr = this.opStack.pop();
                     const valueToPrint = this.memory.unbox(addr);
                     this.setOutput(prevOutput => [...prevOutput, String(valueToPrint)]);
@@ -562,7 +573,7 @@ export class Machine {
                 func: async () => {
                     const addr = this.opStack.pop();
                     const duration = this.memory.unbox(addr);
-                    console.log("sleep", duration)
+                    // console.log("sleep", duration)
 
                     // block
                     const g = this.scheduler.currentGoroutine();
@@ -573,7 +584,7 @@ export class Machine {
                             resolve(len);
                         }, duration)
                     }))
-                    console.log("added", this.sleeping)
+                    // console.log("added", this.sleeping)
 
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(this.memory.box(undefined));
@@ -593,7 +604,7 @@ export class Machine {
                     }
 
                     const chanAddr = this.memory.allocateIntChannel(capacity);
-                    console.log("make channel", chanAddr)
+                    // console.log("make channel", chanAddr)
 
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(chanAddr);
@@ -603,7 +614,7 @@ export class Machine {
             close: {
                 func: () => {
                     const chanAddr = this.opStack.pop();
-                    console.log("close channel", chanAddr)
+                    // console.log("close channel", chanAddr)
                     if (this.memory.getTag(chanAddr) !== Tag.IntChannel) {
                         throw new Error("close() only implemented for channels");
                     }
@@ -736,7 +747,6 @@ export class Machine {
             
             this.builtins[id++] = this.builtinImpls[key].func;
         }
-        console.log("meta", this.builtinMetadata)
     }
 
     async applyBuiltin(builtinId: number): Promise<void> {

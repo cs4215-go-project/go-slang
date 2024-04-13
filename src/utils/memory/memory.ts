@@ -226,7 +226,7 @@ export default class Memory {
         }
 
         if (this.freeIndex === -1) {
-            // console.log("Running garbage collection while allocating", Tag[tag]);
+            console.log("Running garbage collection", Tag[tag]);
             this.markSweep();
             if (this.freeIndex === -1) {
                 throw new Error("mem err: heap exhausted");
