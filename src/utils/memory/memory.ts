@@ -7,15 +7,14 @@
  * 
  * Unused node:
  * [nextNodeIndex][...empty children]  
- * all 8 bytes used to store next node index
+ * last 4 bytes used to store next node index
  *       
  * Used node:
- * [tag, size, marked][...payload/children]
+ * [tag, size, marked, ...any additional metadata][...payload/children/non-children]
  * 1 byte, 1 byte, 1 byte, 5 bytes unused
  */
 
-import { BuiltinMetadata, GoroutineContext, Machine } from "../../vm/machine";
-import { GoroutineId } from "../../vm/scheduler";
+import { BuiltinMetadata, Machine } from "../../vm/machine";
 
 export const WORD_SIZE: number = 8; // bytes
 export const NODE_SIZE: number = 16; // words
@@ -52,8 +51,8 @@ const WAIT_QUEUE_RECV_IDX_OFFSET: number = 4;
 const WAIT_QUEUE_QSIZE_OFFSET: number = 5;
 
 // waitgroup offsets
-const WAIT_GROUP_COUNTER_OFFSET: number = 3;
-const WAIT_GROUP_NUM_WAITERS_OFFSET: number = 4;
+const WAIT_GROUP_NUM_WAITERS_OFFSET: number = 3;
+const WAIT_GROUP_COUNTER_OFFSET: number = 4;
 
 // Golang type tags
 export enum Tag {
@@ -95,11 +94,11 @@ export default class Memory {
         
         // addresses can only be held in 4 bytes (due to WaitQueue)
         if (numWords > 2**32) {
-            throw new Error("numWords must be less than 2^32");
+            throw new Error("mem err: number of memory words must be less than 2^32");
         }
         
         if (numWords % NODE_SIZE !== 0) {
-            const msg: string = "numWords must be a multiple of " + NODE_SIZE;
+            const msg: string = "mem err: numWords must be a multiple of " + NODE_SIZE;
             throw new Error(msg);
         }
 
@@ -223,14 +222,14 @@ export default class Memory {
     // allocates node metadata, called prior to allocating payload/children
     allocateNode(tag: Tag, size: number): number {
         if (size < 1 || size > NODE_SIZE) {
-            throw new Error("Invalid node size");
+            throw new Error("mem err: invalid node size");
         }
 
         if (this.freeIndex === -1) {
             // console.log("Running garbage collection while allocating", Tag[tag]);
             this.markSweep();
             if (this.freeIndex === -1) {
-                throw new Error("Heap exhausted");
+                throw new Error("mem err: heap exhausted");
             }
         }
 
@@ -585,7 +584,7 @@ export default class Memory {
 
     addToWaitQueue(addr: number, goroutineId: number, valAddr: number): void {
         if (this.getWaitQueueSize(addr) === NODE_SIZE - 1) {
-            throw new Error("WaitQueue is full");
+            throw new Error("panic: channel wait queue is full");
         }
         const sendIdx = this.getWaitQueueSendIdx(addr);
         const newSendIdx = (sendIdx + 1) % (NODE_SIZE - 1);
@@ -602,7 +601,7 @@ export default class Memory {
     // returns pair of [goroutineId, valueAddr]
     popFromWaitQueue(addr: number): [number, number] {
         if (this.getWaitQueueSize(addr) === 0) {
-            throw new Error("WaitQueue is empty");
+            throw new Error("panic: channel wait queue is empty");
         }
 
         const recvIdx = this.getWaitQueueRecvIdx(addr);
@@ -617,23 +616,26 @@ export default class Memory {
         return [g, valueAddr]
     }
 
-    // [tag, size, marked, counter, numWaiters][...goroutine IDs (waiting)]
+    /*
+     * WaitGroup allocation
+     * [tag, size, marked, numWaiters, counter, counter, counter, counter][...goroutine IDs (waiting)]
+     */
     allocateWaitGroup() {
         const addr = this.allocateNode(Tag.WaitGroup, 1);
-        this.setByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, 0);
         this.setByteAtOffset(addr, WAIT_GROUP_NUM_WAITERS_OFFSET, 0);
+        this.setFourBytesAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, 0);
         return addr;
     }
 
     getWaitGroupCounter(addr: number): number {
-        return this.getByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET);
+        return this.getFourBytesAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET);
     }
 
     setWaitGroupCounter(addr: number, value: number) {
-        if (value > 255) {
-            throw new Error("Counter value too large");
+        if (value > 2**32 - 1) {
+            throw new Error("mem err: wait group counter value does not fit in 4 bytes");
         }
-        this.setByteAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, value);
+        this.setFourBytesAtOffset(addr, WAIT_GROUP_COUNTER_OFFSET, value);
     }
 
     getWaitGroupNumWaiters(addr: number): number {
@@ -660,7 +662,7 @@ export default class Memory {
         const size = this.getWaitGroupNumWaiters(addr);
 
         if (size === NODE_SIZE - 1) {
-            throw new Error("WaitGroup is full");
+            throw new Error("panic: waitgroup is full");
         }
 
         this.setChild(addr, size, goroutineId);
@@ -682,7 +684,7 @@ export default class Memory {
         } else if (typeof obj === "number") {
             return this.allocateInt(obj);
         }
-        throw new Error("Unsupported type");
+        throw new Error("mem error: tried to box unsupported type " + typeof obj + " " + obj);
     }
 
     // given an address, first interprets the tag, then unboxes and returns the value
@@ -701,8 +703,10 @@ export default class Memory {
                 return this.getIntValue(addr);
             case Tag.IntChannel:
                 return addr;
+            case Tag.WaitGroup:
+                return addr;
             default:
-                throw new Error("Unsupported type");
+                throw new Error("mem error: tried to unbox unsupported tag " + Tag[tag]);
         }
     }
 

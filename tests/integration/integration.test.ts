@@ -443,6 +443,27 @@ func main() {
     expect(result.message).toBe("panic: negative WaitGroup counter");
   });
 
+  test("waitgroup", async () => {
+    const input = `
+    package main
+
+    func main() {
+        var wg WaitGroup
+        var x = 0
+        wgAdd(wg, 1)
+        go func() {
+            x = 10
+            wgDone(wg)
+        }()
+        wgWait(wg)
+        return x
+    }
+            `;
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result)
+    expect(result).toBe(10);
+  });
+
   test("sleep", async () => {
     const input = `
     package main
