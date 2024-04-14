@@ -273,7 +273,7 @@ const compileComp = {
         if (comp.values.length > 0) {
             compileHelper(comp.values[0], cte);
         }
-        
+
         if (comp.values[0].type === "FunctionCall") {
             instrs[wc - 1].opcode = "TAIL_CALL";
         } else { 
@@ -346,10 +346,11 @@ const compileComp = {
     },
     "MakeExpression": (comp: MakeExpression, cte: CompileTimeEnvironment) => {
         if (comp.dataType !== "chanint") {
-            throw new Error("Only chan int is supported for now")
+            throw new Error("make() is only supported for 'chan int' for now")
         }
         compileHelper({type: "Identifier", name: "make"} as Identifier, cte);
-        instrs[wc++] = { opcode: "LDC", value: comp.capacity };
+        // instrs[wc++] = { opcode: "LDC", value: comp.capacity };
+        compileHelper(comp.capacity, cte);
         instrs[wc++] = { opcode: "CALL", arity: 1 };
     },
     "CloseExpression": (comp: CloseExpression, cte: CompileTimeEnvironment) => {

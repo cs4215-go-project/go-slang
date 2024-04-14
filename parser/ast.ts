@@ -184,7 +184,7 @@ export type Expression = BinaryExpr | UnaryExpr | Identifier | Literal | Functio
 export interface MakeExpression extends GoNodeBase {
   type: "MakeExpression";
   dataType: DataType;
-  capacity: number;
+  capacity: Expression;
 }
 
 export interface CloseExpression extends GoNodeBase {

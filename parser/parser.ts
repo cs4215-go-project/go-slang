@@ -464,7 +464,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
           type: "MakeExpression",
           //   position: getPosition(ctx),
           dataType: (expr[0] as Identifier).name,
-          capacity: expr.length > 1 ? (expr[1] as IntegerLiteral).value : 0,
+          capacity: expr.length > 1 ? expr[1] : { type: "IntegerLiteral", value: 0 },
         };
       } else if (ctx.primaryExpr().getText() === "close") {
         return {
