@@ -222,7 +222,7 @@ export default class Memory {
     // allocates node metadata, called prior to allocating payload/children
     allocateNode(tag: Tag, size: number): number {
         if (size < 1 || size > NODE_SIZE) {
-            throw new Error("mem err: invalid node size");
+            throw new Error("mem err: invalid node size (node size should be between 1 and " + NODE_SIZE + ")");
         }
 
         if (this.freeIndex === -1) {
@@ -708,6 +708,69 @@ export default class Memory {
             default:
                 throw new Error("mem error: tried to unbox unsupported tag " + Tag[tag]);
         }
+    }
+
+    /*
+     * Functions to check tags
+     */
+    isNil(addr: number): boolean {
+        return this.getTag(addr) === Tag.Nil;
+    }
+
+    isUnassigned(addr: number): boolean {
+        return this.getTag(addr) === Tag.Unassigned;
+    }
+
+    isTrue(addr: number): boolean {
+        return this.getTag(addr) === Tag.True;
+    }
+
+    isFalse(addr: number): boolean {
+        return this.getTag(addr) === Tag.False;
+    }
+
+    isBoolean(addr: number): boolean {
+        return this.getTag(addr) === Tag.True || this.getTag(addr) === Tag.False;
+    }
+
+    isInt(addr: number): boolean {
+        return this.getTag(addr) === Tag.Int;
+    }
+
+    isBuiltin(addr: number): boolean {
+        return this.getTag(addr) === Tag.Builtin;
+    }
+
+    isEnvironment(addr: number): boolean {
+        return this.getTag(addr) === Tag.Environment;
+    }
+
+    isFrame(addr: number): boolean {
+        return this.getTag(addr) === Tag.Frame;
+    }
+
+    isCallframe(addr: number): boolean {
+        return this.getTag(addr) === Tag.Callframe;
+    }
+
+    isBlockframe(addr: number): boolean {
+        return this.getTag(addr) === Tag.Blockframe;
+    }
+
+    isClosure(addr: number): boolean {
+        return this.getTag(addr) === Tag.Closure;
+    }
+
+    isIntChannel(addr: number): boolean {
+        return this.getTag(addr) === Tag.IntChannel;
+    }
+
+    isWaitQueue(addr: number): boolean {
+        return this.getTag(addr) === Tag.WaitQueue;
+    }
+
+    isWaitGroup(addr: number): boolean {
+        return this.getTag(addr) === Tag.WaitGroup;
     }
 
     /*

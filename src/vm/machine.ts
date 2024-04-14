@@ -10,6 +10,7 @@ export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
 
 export default async function parseCompileAndRun(memSize: number, input: string, setOutput: (output: any) => void): Promise<any> {
     try {
+        setOutput((prevOutput) => []);
         const parsed = parse(input);
         console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
@@ -64,7 +65,6 @@ export class Machine {
 
         // frontend
         this.setOutput = setOutput;
-        this.setOutput((prevOutput) => []);
 
         // machine state
         this.pc = 0;
@@ -123,12 +123,10 @@ export class Machine {
             const instr = this.instructions[this.pc++];
             console.log("g:", this.scheduler.currentGoroutine(), "PC:", this.pc - 1, "Instr:", instr)
             await this.execute(instr);
-            // console.log(this.goroutineContexts);
             this.remainingTimeSlice--;
         }
 
         const resultAddress = this.opStack.pop();
-        console.log("resultAddress", resultAddress)
         return this.memory.unbox(resultAddress);
     }
 
@@ -139,9 +137,7 @@ export class Machine {
     async waitForSleeping(): Promise<[number, number]> {
         const idx = await Promise.race(this.sleeping);
         this.sleeping.splice(idx, 1);
-        console.log("after rm", this.sleeping)
         const g = this.scheduler.runNextGoroutine();
-        console.log("next after await promise", g)
         return g;
     }
 
@@ -150,9 +146,7 @@ export class Machine {
         this.scheduler.interruptGoroutine(isBlocked);
 
         let g = this.scheduler.runNextGoroutine();
-        console.log("next", g)
         if (g === null) {
-            console.log("sleeping", this.sleeping)
             if (this.sleeping.length === 0) {
                 throw new Error("fatal error: all goroutines are asleep - deadlock!")
             }
@@ -164,7 +158,6 @@ export class Machine {
     }
 
     saveGoroutineContext(): void {
-        // console.log(this.goroutineContexts, "in context switching")
         this.goroutineContexts.set(this.scheduler.currentGoroutine(), {
             env: this.env,
             pc: this.pc,
@@ -192,9 +185,13 @@ export class Machine {
             case "BINOP": {
                 const rightOpAddr = this.opStack.pop();
                 const leftOpAddr = this.opStack.pop();
+                
+                const bothInts: boolean = this.memory.isInt(leftOpAddr) && this.memory.isInt(rightOpAddr);
+                const bothBools: boolean = this.memory.isBoolean(leftOpAddr) && this.memory.isBoolean(rightOpAddr);
 
-                console.log("left", leftOpAddr, "right", rightOpAddr);
-                console.log("left type", Tag[this.memory.getTag(leftOpAddr)], "right type", Tag[this.memory.getTag(rightOpAddr)]);
+                if (!bothInts && !bothBools) {
+                    throw new Error("binary operations can only be applied to operands of the same type (ints or booleans)");
+                }
 
                 const left = this.memory.unbox(leftOpAddr);
                 const right = this.memory.unbox(rightOpAddr);
@@ -208,8 +205,6 @@ export class Machine {
             case "SEND": {
                 const valueAddr = this.opStack.pop();
                 const chanAddr = this.opStack.pop();
-
-                const value = this.memory.unbox(valueAddr);
                 const chan = this.memory.unbox(chanAddr);
 
                 // if channel is unbuffered, a send will block until a receive,
@@ -316,16 +311,14 @@ export class Machine {
             }
             case "LD": {
                 const addr = this.memory.getValueFromEnv(this.env, instr.compilePos);
-                if (this.memory.getTag(addr) === Tag.Unassigned) {
-                    throw new Error("Variable '" + instr.sym + "' used before assignment");
+                if (this.memory.isUnassigned(addr)) {
+                    throw new Error("variable '" + instr.sym + "' used before assignment");
                 }
-                console.log("LD addr", addr);
                 this.opStack.push(addr);
                 break
             }
             case "ASSIGN": {
                 const addr = this.opStack[this.opStack.length - 1];
-                console.log("assign", addr)
                 this.memory.setValueInEnv(this.env, instr.compilePos, addr);
                 break;
             }
@@ -337,10 +330,8 @@ export class Machine {
             case "CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
-                console.log("CALL", this.memory.getTag(closureAddr), closureAddr)
-                if (this.memory.getTag(closureAddr) === Tag.Builtin) {
+                if (this.memory.isBuiltin(closureAddr)) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
-                    console.log("builtinId", builtinId)
                     await this.applyBuiltin(builtinId);
                     return;
                 }
@@ -368,10 +359,8 @@ export class Machine {
             case "TAIL_CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
-                // console.log("CALL", this.memory.getTag(closureAddr), closureAddr)
-                if (this.memory.getTag(closureAddr) === Tag.Builtin) {
+                if (this.memory.isBuiltin(closureAddr)) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
-                    console.log("builtinId", builtinId)
                     await this.applyBuiltin(builtinId);
                     return;
                 }
@@ -394,7 +383,7 @@ export class Machine {
             }
             case "RESET": {
                 const topFrameAddr = this.runtimeStack.pop();
-                if (this.memory.getTag(topFrameAddr) === Tag.Callframe) {
+                if (this.memory.isCallframe(topFrameAddr)) {
                     this.pc = this.memory.getCallframePc(topFrameAddr);
                     this.env = this.memory.getCallframeEnv(topFrameAddr);
                 } else {
@@ -406,7 +395,6 @@ export class Machine {
                 const g = this.scheduler.scheduleGoroutine();
                 if (this.scheduler.currentGoroutine() === undefined) {
                     const [_, timeSlice] = this.scheduler.runNextGoroutine();
-                    // console.log("main goroutine starting", g, timeSlice)
                     this.remainingTimeSlice = timeSlice
                 }
 
@@ -415,13 +403,13 @@ export class Machine {
                     pc: this.pc,
                     opStack: [],
                     runtimeStack: [],
-                }
+                };
                 this.goroutineContexts.set(g, gctx);
 
                 if (instr.stopInstr) {
                     this.pc = instr.stopInstr;
                 }
-                break
+                break;
             }
             case "STOP_GOROUTINE": {
                 // if it's main, then we're done
@@ -441,12 +429,12 @@ export class Machine {
 
                 this.restoreGoroutineContext(g);
 
-                break
+                break;
             }
             case "MAKE_WAITGROUP": {
                 const wgAddr = this.memory.allocateWaitGroup();
                 this.opStack.push(wgAddr);
-                break
+                break;
             }
             default:
                 throw new Error("Unknown opcode: " + instr.opcode);
@@ -457,43 +445,43 @@ export class Machine {
         switch (op) {
             case "+": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Arithmetic operators can only be applied to numbers");
+                    throw new Error(`arithmetic operator ${op} can only be applied to ints`);
                 }
                 return left + right;
             }
             case "-": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Arithmetic operators can only be applied to numbers");
+                    throw new Error(`arithmetic operator ${op} can only be applied to ints`);
                 }
                 return left - right;
             }
             case "*": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Arithmetic operators can only be applied to numbers");
+                    throw new Error(`arithmetic operator ${op} can only be applied to ints`);
                 }
                 return left * right;
             }
             case "/": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Arithmetic operators can only be applied to numbers");
+                    throw new Error(`arithmetic operator ${op} can only be applied to ints`);
                 }
                 return Math.floor(left / right);
             }
             case "%": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Arithmetic operators can only be applied to numbers");
+                    throw new Error(`arithmetic operator ${op} can only be applied to ints`);
                 }
                 return left % right;
             }
             case "<": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Comparison operators can only be applied to numbers");
+                    throw new Error(`comparison operator ${op} can only be applied to ints`);
                 }
                 return left < right;
             }
             case "<=": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Comparison operators can only be applied to numbers");
+                    throw new Error(`comparison operator ${op} can only be applied to ints`);
                 }
                 return left <= right;
             }
@@ -505,30 +493,30 @@ export class Machine {
             }
             case ">=": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Comparison operators can only be applied to numbers");
+                    throw new Error(`comparison operator ${op} can only be applied to ints`);
                 }
                 return left >= right;
             }
             case ">": {
                 if (typeof left !== 'number' || typeof right !== 'number') {
-                    throw new Error("Comparison operators can only be applied to numbers");
+                    throw new Error(`comparison operator ${op} can only be applied to ints`);
                 }
                 return left > right;
             }
             case "&&": {
                 if (typeof left !== 'boolean' || typeof right !== 'boolean') {
-                    throw new Error("Logical operators can only be applied to booleans");
+                    throw new Error(`logical operator ${op} can only be applied to booleans`);
                 }
                 return left && right;
             }
             case "||": {
                 if (typeof left !== 'boolean' || typeof right !== 'boolean') {
-                    throw new Error("Logical operators can only be applied to booleans");
+                    throw new Error(`logical operator ${op} can only be applied to booleans`);
                 }
                 return left || right;
             }
             default:
-                throw new Error("Unknown binary operator: " + op);
+                throw new Error("unknown binary operator: " + op);
         }
     }
 
@@ -536,16 +524,16 @@ export class Machine {
         switch (op) {
             case "-":
                 if (typeof operand !== 'number') {
-                    throw new Error(`Operator ${op} cannot be applied to type ${typeof operand}`);
+                    throw new Error(`operator ${op} can only be applied to ints`);
                 }
                 return -operand;
             case "!":
                 if (typeof operand !== 'boolean') {
-                    throw new Error(`Operator ${op} cannot be applied to type ${typeof operand}`);
+                    throw new Error(`operator ${op} can only be applied to booleans`);
                 }
                 return !operand;
             default:
-                throw new Error("Unknown unary operator: " + op);
+                throw new Error("unknown unary operator: " + op);
         }
     }   
 
@@ -554,8 +542,14 @@ export class Machine {
             println: {
                 func: () => {
                     const addr = this.opStack.pop();
+
+                    if (!this.memory.isInt(addr) && !this.memory.isBoolean(addr)) {
+                        throw new Error("println() only allowed for ints and booleans");
+                    }
+
                     const valueToPrint = this.memory.unbox(addr);
                     this.setOutput(prevOutput => [...prevOutput, String(valueToPrint)]);
+
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(this.memory.box(undefined));
                 },
@@ -564,8 +558,13 @@ export class Machine {
             panic: {
                 func: () => {
                     const addr = this.opStack.pop();
+
+                    if (!this.memory.isInt(addr) && !this.memory.isBoolean(addr)) {
+                        throw new Error("panic() only allowed for ints and booleans");
+                    }
+
                     const valueToPanic = this.memory.unbox(addr);
-                    throw new Error(valueToPanic.toString());
+                    throw new Error("panic: " + valueToPanic.toString());
                 },
                 arity: 1,
             },
@@ -573,7 +572,6 @@ export class Machine {
                 func: async () => {
                     const addr = this.opStack.pop();
                     const duration = this.memory.unbox(addr);
-                    // console.log("sleep", duration)
 
                     // block
                     const g = this.scheduler.currentGoroutine();
@@ -583,8 +581,7 @@ export class Machine {
                             this.scheduler.wakeUpGoroutine(g);
                             resolve(len);
                         }, duration)
-                    }))
-                    // console.log("added", this.sleeping)
+                    }));
 
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(this.memory.box(undefined));
@@ -598,13 +595,16 @@ export class Machine {
                     // only for Go channels
                     const capacityAddr = this.opStack.pop();
                     const capacity = this.memory.unbox(capacityAddr);
+
+                    if (!this.memory.isInt(capacityAddr)) {
+                        throw new Error("make() channel capacity must be an int");
+                    }
                     
                     if (capacity < 0) {
                         throw new Error("make() channel capacity must be non-negative");
                     }
 
                     const chanAddr = this.memory.allocateIntChannel(capacity);
-                    // console.log("make channel", chanAddr)
 
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(chanAddr);
@@ -614,10 +614,11 @@ export class Machine {
             close: {
                 func: () => {
                     const chanAddr = this.opStack.pop();
-                    // console.log("close channel", chanAddr)
-                    if (this.memory.getTag(chanAddr) !== Tag.IntChannel) {
-                        throw new Error("close() only implemented for channels");
+
+                    if (!this.memory.isIntChannel(chanAddr)) {
+                        throw new Error("close() only allowed for channels");
                     }
+
                     this.memory.setIntChannelClose(chanAddr, 1);
 
                     this.opStack.pop(); // pop closure address
@@ -631,8 +632,8 @@ export class Machine {
                     const leftOpAddr = this.opStack.pop();
 
                     // check operand types
-                    if (this.memory.getTag(leftOpAddr) !== Tag.Int || this.memory.getTag(rightOpAddr) !== Tag.Int) {
-                        throw new Error("max() only allowed for integers");
+                    if (!this.memory.isInt(leftOpAddr) || !this.memory.isInt(rightOpAddr)) {
+                        throw new Error("max() only allowed for ints");
                     }
 
                     const left = this.memory.unbox(leftOpAddr);
@@ -645,7 +646,6 @@ export class Machine {
                     } else {
                         this.opStack.push(rightOpAddr);
                     }
-                    
                 },
                 arity: 2,
             },
@@ -655,8 +655,8 @@ export class Machine {
                     const leftOpAddr = this.opStack.pop();
 
                     // check operand types
-                    if (this.memory.getTag(leftOpAddr) !== Tag.Int || this.memory.getTag(rightOpAddr) !== Tag.Int) {
-                        throw new Error("min() only allowed for integers");
+                    if (!this.memory.isInt(leftOpAddr) || !this.memory.isInt(rightOpAddr)) {
+                        throw new Error("min() only allowed for ints");
                     }
 
                     const left = this.memory.unbox(leftOpAddr);
@@ -674,9 +674,16 @@ export class Machine {
             },
             wgAdd: {
                 func: () => {
-                    const delta = this.memory.unbox(this.opStack.pop());
+                    const deltaAddr = this.opStack.pop();
+
+                    if (!this.memory.isInt(deltaAddr)) {
+                        throw new Error("wgAdd() argument 'delta' must evaluate to an int");
+                    }
+                    const delta = this.memory.unbox(deltaAddr);
+
                     const wgAddr = this.opStack.pop();
-                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+
+                    if (!this.memory.isWaitGroup(wgAddr)) {
                         throw new Error("wgAdd() only allowed for WaitGroup");
                     }
                     this.memory.setWaitGroupCounter(wgAddr, this.memory.getWaitGroupCounter(wgAddr) + delta);
@@ -689,13 +696,17 @@ export class Machine {
             wgDone: {
                 func: () => {
                     const wgAddr = this.opStack.pop();
-                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+                    if (!this.memory.isWaitGroup(wgAddr)) {
                         throw new Error("wgDone() only allowed for WaitGroup");
                     }
+
                     const newCounter = this.memory.getWaitGroupCounter(wgAddr) - 1;
                     if (newCounter < 0) {
                         throw new Error("panic: negative WaitGroup counter");
                     }
+                    
+                    this.memory.setWaitGroupCounter(wgAddr, newCounter);
+
                     if (newCounter === 0) {
                         const wgq = this.memory.getWaitGroupWaiters(wgAddr);
                         for (const g of wgq) {
@@ -704,7 +715,6 @@ export class Machine {
                         return;
                     }
 
-                    this.memory.setWaitGroupCounter(wgAddr, newCounter);
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(this.memory.box(undefined));
                 },
@@ -713,9 +723,10 @@ export class Machine {
             wgWait: {
                 func: async () => {
                     const wgAddr = this.opStack.pop()
-                    if (this.memory.getTag(wgAddr) !== Tag.WaitGroup) {
+                    if (!this.memory.isWaitGroup(wgAddr)) {
                         throw new Error("wgWait() only allowed for WaitGroup");
                     }
+
                     if (this.memory.getWaitGroupCounter(wgAddr) === 0) {
                         return;
                     }
