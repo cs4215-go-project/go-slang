@@ -58,7 +58,7 @@ export class Machine {
 
     private mainDone: boolean;
 
-    private sleeping: Promise<number>[];
+    private sleeping: Promise<void>[];
 
     constructor(numWords: number, instructions: Instruction[], setOutput: (output: any) => void) {
         this.instructions = instructions;
@@ -135,8 +135,7 @@ export class Machine {
     }
 
     async waitForSleeping(): Promise<[number, number]> {
-        const idx = await Promise.race(this.sleeping);
-        this.sleeping.splice(idx, 1);
+        await Promise.race(this.sleeping);
         const g = this.scheduler.runNextGoroutine();
         return g;
     }
@@ -147,11 +146,13 @@ export class Machine {
 
         let g = this.scheduler.runNextGoroutine();
         if (g === null) {
+            console.log("sleeping:", this.sleeping)
             if (this.sleeping.length === 0) {
                 throw new Error("fatal error: all goroutines are asleep - deadlock!")
             }
 
             g = await this.waitForSleeping();
+            console.log("after await", g)
         }
 
         this.restoreGoroutineContext(g);
@@ -575,13 +576,18 @@ export class Machine {
 
                     // block
                     const g = this.scheduler.currentGoroutine();
-                    const len = this.sleeping.length;
-                    this.sleeping.push(new Promise<number>((resolve, reject) => {
+
+                    const prom = new Promise<void>((resolve, reject) => {
                         setTimeout(() => {
                             this.scheduler.wakeUpGoroutine(g);
-                            resolve(len);
+                            resolve();
                         }, duration)
-                    }));
+                    }).then(res => {
+                        // after the promise is resolved, remove itself from the sleeping list
+                        this.sleeping.splice(this.sleeping.indexOf(prom), 1)
+                        return res; 
+                    })
+                    this.sleeping.push(prom);
 
                     this.opStack.pop(); // pop closure address
                     this.opStack.push(this.memory.box(undefined));

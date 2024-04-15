@@ -524,4 +524,30 @@ func main() {
     const result = await parseCompileAndRun(2048, input, setOutputStub);
     expect(result).toBe(2);
   });
+
+  test("bug", async () => {
+    const input = `
+    package main
+
+    func main() {
+    go func() {
+        for i := 0; i < 10; i++ {
+            println(i)
+            sleep(500)
+        }
+    }()
+
+    for i := 0; i < 7; i++ {
+        println(i)
+        sleep(1000)
+    }
+
+    return 1
+}
+    `
+
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result)
+    expect(result).toBe(1);
+  }, 15000);
 });
