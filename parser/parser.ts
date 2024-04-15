@@ -51,6 +51,7 @@ import {
   ExpressionList,
   ExpressionStatement,
   ForStatement,
+  FunctionCall,
   FunctionDecl,
   FunctionLiteral,
   GoNodeBase,
@@ -191,10 +192,16 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitGoStmt = (ctx: GoStmtContext): GoStatement => {
+    const expression = this.visitExpression(ctx.expression());
+
+    if (expression.type !== "FunctionCall") {
+      throw new Error("Go statement must be a function call");
+    }
+    
     return {
       type: "GoStatement",
       //   position: getPosition(ctx),
-      expression: this.visitExpression(ctx.expression()),
+      expression: this.visitExpression(ctx.expression()) as FunctionCall,
     };
   };
 
@@ -634,13 +641,21 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitVarSpec = (ctx: VarSpecContext): VarSpec => {
-    if (ctx.expressionList() !== null) {
+    const zeroValueMap = { 'int': 0, 'bool': false };
+    const typeMap = { 'int': 'IntegerLiteral', 'bool': 'BooleanLiteral' };
+    if (ctx.expressionList() === null) {
       return {
         type: "VarSpec",
         //   position: getPosition(ctx),
         identifierList: this.visitIdentifierList(ctx.identifierList()),
         dataType: ctx.type_()?.getText(),
-        expressionList: this.visitExpressionList(ctx.expressionList()),
+        expressionList: {
+          type: "ExpressionList",
+          expressions: ctx.identifierList().IDENTIFIER_list().map(() => ({
+            type: typeMap[ctx.type_().getText()],
+            value: zeroValueMap[ctx.type_().getText()],
+          })),
+        },
       };
     } else {
       return {
@@ -648,6 +663,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         //   position: getPosition(ctx),
         identifierList: this.visitIdentifierList(ctx.identifierList()),
         dataType: ctx.type_()?.getText(),
+        expressionList: this.visitExpressionList(ctx.expressionList()),
       };
     }
   };

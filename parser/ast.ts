@@ -82,7 +82,7 @@ export interface SendStatement extends GoNodeBase {
 
 export interface GoStatement extends GoNodeBase {
   type: "GoStatement";
-  expression: Expression;
+  expression: FunctionCall;
 }
 
 export interface ReturnStatement extends GoNodeBase {
