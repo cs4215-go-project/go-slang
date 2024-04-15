@@ -1,10 +1,11 @@
 import { Assignment, BinaryExpr, Block, BooleanLiteral, BreakStatement, CloseExpression, ConstDecl, ConstSpec, ContinueStatement, Declaration, DeclareAssign, ExpressionStatement, ForStatement, FunctionCall, FunctionDecl, FunctionLiteral, GoNodeBase, GoStatement, Identifier, IdentifierList, IfStatement, IncDecStatement, IntegerLiteral, MakeExpression, ReturnStatement, SendStatement, SourceFile, SourceLevelDeclaration, Statement, UnaryExpr, VarDecl } from "../../parser/ast";
 
 const builtins = ["println", "panic", "sleep", "make", "close", "max", "min", "wgAdd", "wgDone", "wgWait"]
+const builtinArity = [1, 1, 1, 1, 1, 2, 2, 2, 1, 1]
 
 type CompileTimeEnvironment = string[][];
 
-function compileTimeEnvironmentPosition(cte: CompileTimeEnvironment, identifier: string) {
+function compileTimeEnvironmentPosition(cte: CompileTimeEnvironment, identifier: string): [number, number] {
     console.log(cte)
     let frameIndex = cte.length;
     while (valueIndex(cte[--frameIndex], identifier) === -1) {}
@@ -59,7 +60,12 @@ let instrs: Instruction[];
 // compile-time frames, and a compile-time frame
 // is an array of symbols
 let cte: CompileTimeEnvironment;
-const globalCompileFrame = []; // TODO: add built-in functions
+const globalCompileFrame = [builtins];
+
+function serializeCompileTimePos(pos: [number, number]) {
+    return pos.join("_");
+}
+let compileTimePosToArity: Record<string, number>
 
 // placeholder instruction
 type NOPInstruction = {
@@ -117,14 +123,30 @@ const compileComp = {
                         expressions: [
                             {type:"FunctionLiteral", signature: comp.signature, body: comp.body} as FunctionLiteral
                         ]
-                        }
+                    }
                 }
         ]} as ConstDecl, cte)
+        const funcPos = compileTimeEnvironmentPosition(cte, comp.name);
+        compileTimePosToArity[serializeCompileTimePos(funcPos)] = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0)
     },
     "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
         compileHelper(comp.func, cte);
 
         if (comp.args) {
+            if (comp.func.type === "FunctionLiteral") {
+                // function literals don't have an identifier
+                const arity = comp.func.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
+                if (arity !== comp.args.length) {
+                    throw new Error(`Function called with wrong number of arguments: expected ${arity}, got ${comp.args.length}`)
+                }
+            } else {
+                const funcPos = compileTimeEnvironmentPosition(cte, comp.func.name);
+                const arity = compileTimePosToArity[serializeCompileTimePos(funcPos)];
+                if (arity !== undefined && arity !== comp.args.length) {
+                    throw new Error(`Function '${comp.func.name}' called with wrong number of arguments: expected ${arity}, got ${comp.args.length}`)
+                }
+            }
+
             for (const arg of comp.args) {
                 compileHelper(arg, cte);
             }
@@ -274,11 +296,10 @@ const compileComp = {
             compileHelper(comp.values[0], cte);
         }
 
-        if (comp.values[0].type === "FunctionCall") {
+        if (comp.values[0]?.type === "FunctionCall") {
             instrs[wc - 1].opcode = "TAIL_CALL";
-        } else { 
-            instrs[wc++] = { opcode: "RESET" };
         }
+        instrs[wc++] = { opcode: "RESET" };
     },
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
         if (comp.init !== undefined) {
@@ -373,7 +394,11 @@ export function compileHelper (node: GoNodeBase, cte: CompileTimeEnvironment) {
 export function compile(sourceFile: SourceFile) : Instruction[] {
     wc = 0;
     instrs = [];
-    cte = [globalCompileFrame];
+    cte = globalCompileFrame;
+    compileTimePosToArity = {};
+    for (let i = 0; i < builtins.length; i++) {
+        compileTimePosToArity[serializeCompileTimePos([0, i])] = builtinArity[i];
+    }
 
     compileHelper(sourceFile, cte);
     instrs[wc] = ({ opcode: "DONE" });
