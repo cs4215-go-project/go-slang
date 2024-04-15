@@ -419,7 +419,9 @@ export class Machine {
                     return;
                 }
 
-                this.scheduler.terminateGoroutine(this.scheduler.currentGoroutine());
+                const terminatedG = this.scheduler.currentGoroutine();
+                this.goroutineContexts.delete(terminatedG);
+                this.scheduler.terminateGoroutine(terminatedG);
                 let g = this.scheduler.runNextGoroutine();
                 if (g === null) {
                     if (this.sleeping.length === 0) {
