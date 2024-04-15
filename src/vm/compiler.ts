@@ -17,7 +17,11 @@ function compileTimeEnvironmentExtend(vs, e: CompileTimeEnvironment) {
 }
 
 function valueIndex(frame: string[], identifier: string) {
-    return frame.indexOf(identifier);
+    try {
+        return frame.indexOf(identifier);
+    } catch (e) {
+        throw new Error(`Identifier ${identifier} not declared`)
+    }
 }
 
 function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
@@ -125,9 +129,9 @@ const compileComp = {
                         ]
                     }
                 }
-        ]} as ConstDecl, cte)
+        ]} as ConstDecl, cte);
         const funcPos = compileTimeEnvironmentPosition(cte, comp.name);
-        compileTimePosToArity[serializeCompileTimePos(funcPos)] = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0)
+        compileTimePosToArity[serializeCompileTimePos(funcPos)] = comp.signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
     },
     "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
         compileHelper(comp.func, cte);
@@ -270,6 +274,11 @@ const compileComp = {
     "DeclareAssign": (comp: DeclareAssign, cte: CompileTimeEnvironment) => {
         for (let i = 0; i < comp.left.length; i++) {
             compileHelper(comp.right[i], cte);
+            if (comp.right[i].type === "FunctionLiteral") {
+                const arity = (comp.right[i] as FunctionLiteral).signature.parameters.parameterDecls.reduce((acc, param) => acc + param.identifierList.identifiers.length, 0);
+                const funcPos = compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name);
+                compileTimePosToArity[serializeCompileTimePos(funcPos)] = arity;
+            }
             instrs[wc++] = {
                 opcode: "ASSIGN",
                 compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)

@@ -331,6 +331,13 @@ export class Machine {
             case "CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
+
+                const closureArity = this.memory.isBuiltin(closureAddr) ? this.memory.getBuiltinArity(closureAddr) : this.memory.getClosureArity(closureAddr);
+
+                if (closureArity !== arity) {
+                    throw new Error(`Function called with wrong number of arguments: expected ${closureArity}, got ${arity}`)
+                }
+
                 if (this.memory.isBuiltin(closureAddr)) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
                     await this.applyBuiltin(builtinId);
@@ -360,6 +367,13 @@ export class Machine {
             case "TAIL_CALL": {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
+
+                const closureArity = this.memory.isBuiltin(closureAddr) ? this.memory.getBuiltinArity(closureAddr) : this.memory.getClosureArity(closureAddr);
+
+                if (closureArity !== arity) {
+                    throw new Error(`Function called with wrong number of arguments: expected ${closureArity}, got ${arity}`)
+                }
+
                 if (this.memory.isBuiltin(closureAddr)) {
                     const builtinId = this.memory.getBuiltinId(closureAddr);
                     await this.applyBuiltin(builtinId);
