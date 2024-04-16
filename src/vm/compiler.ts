@@ -103,6 +103,10 @@ const compileComp = {
             compileHelper(decl, compileTimeEnvironmentExtend(locals, cte))
         });
         
+        // check if main function is defined
+        if (locals.indexOf("main") === -1) {
+            throw new Error("main() function not defined")
+        }
 
         instrs[wc++] = { opcode: "LD", compilePos: [1, locals.indexOf("main")] };
         instrs[wc++] = { opcode: "START_GOROUTINE" };
