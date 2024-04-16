@@ -111,13 +111,13 @@ export class Machine {
                 throw new Error("Negative time slice")
             }
             // TODO: error when deadlock
-            console.log("current goroutine", this.scheduler.currentGoroutine())
-            console.log("remaining time slice", this.remainingTimeSlice)
+            // console.log("current goroutine", this.scheduler.currentGoroutine())
+            // console.log("remaining time slice", this.remainingTimeSlice)
             if (!this.mainDone && this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
-                console.log("prev goroutine", this.scheduler.currentGoroutine())
+                // console.log("prev goroutine", this.scheduler.currentGoroutine())
                 // context switch due to time slice expiration, not blocked
                 await this.contextSwitch(false);
-                console.log("curr goroutine", this.scheduler.currentGoroutine())
+                // console.log("curr goroutine", this.scheduler.currentGoroutine())
             }
             
             const instr = this.instructions[this.pc++];
@@ -152,7 +152,6 @@ export class Machine {
             }
 
             g = await this.waitForSleeping();
-            console.log("after await", g)
         }
 
         this.restoreGoroutineContext(g);
@@ -238,7 +237,7 @@ export class Machine {
                 const chan = this.memory.unbox(chanAddr);
 
                 let valueAddr = this.memory.receiveFromIntChannel(chan)
-                console.log("received", valueAddr)
+                // console.log("received", valueAddr)
                 if (valueAddr === -1) {
                     // empty channel, block goroutine
                     const g = this.scheduler.currentGoroutine();
@@ -296,6 +295,8 @@ export class Machine {
             case "ENTER_SCOPE": {
                 const blockframeAddr = this.memory.allocateBlockframe(this.env);
                 this.runtimeStack.push(blockframeAddr);
+
+                this.memory.allocating.push(blockframeAddr);
 
                 const newFrameAddr = this.memory.allocateFrame(instr.numDeclarations);
                 for (let i = 0; i < instr.numDeclarations; i++) {
