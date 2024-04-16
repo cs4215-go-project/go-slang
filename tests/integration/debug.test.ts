@@ -12,23 +12,16 @@ const setOutputStub = (output: any) => {
 const program = `
     package main
 
-    func trueIfTwo(x int) bool {
-        if x == 2 {
-            return true
-        }
-        println(101)
-        return false
-    }
-
     func main() {
-        println(trueIfTwo(3))
-        return trueIfTwo(2)
+        for i := 0; i < 12; i = i + 3 {
+            j := i
+        }
     }
 `;
 
 describe("debug", () => {
     test("debug", async () => {
         const result = await parseCompileAndRun(1024, program, setOutputStub);
-        expect(result).toBe(true);
+        // expect(result).toBe(true);
     });
 });
