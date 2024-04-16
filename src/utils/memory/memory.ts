@@ -369,7 +369,6 @@ export default class Memory {
         this.allocating = [parentEnv];
         const addr: number = this.allocateNode(Tag.Blockframe, 2);
         this.setChild(addr, 0, parentEnv);
-        this.allocating = [];
 
         return addr;
     }
@@ -406,7 +405,7 @@ export default class Memory {
     extendEnv(envAddr: number, frameAddr: number): number {
         const oldFrameCount: number = this.getNumChildren(envAddr);
 
-        this.allocating = [frameAddr, envAddr];
+        this.allocating.push(frameAddr, envAddr);
         const newEnvAddr = this.allocateEnv(oldFrameCount + 1);
         this.allocating = [];
 
@@ -435,10 +434,15 @@ export default class Memory {
         this.setByteAtOffset(chanAddr, CAPACITY_OFFSET, capacity);
         
         this.allocating = [chanAddr];
+
         const sendqAddr: number = this.allocateWaitQueue();
         this.setChild(chanAddr, 0, sendqAddr);
+        
+        this.allocating.push(sendqAddr);
+
         const recvqAddr: number = this.allocateWaitQueue();
         this.setChild(chanAddr, 1, recvqAddr);
+
         this.allocating = [];
 
         return chanAddr;
@@ -548,7 +552,8 @@ export default class Memory {
     }
 
     /*
-     * [tag, size, marked, sendIdx, recvIdx, qsize][...goroutine IDs]
+     * [tag, size, marked, sendIdx, recvIdx, qsize][...sudog structs]
+     * where sudog structs consist of [goroutineId, valueAddr]
      */
     allocateWaitQueue(): number {
         const addr = this.allocateNode(Tag.WaitQueue, 1);
