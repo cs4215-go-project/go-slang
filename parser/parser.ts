@@ -128,7 +128,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   // we dont support generics
   visitFunctionDecl = (ctx: FunctionDeclContext): FunctionDecl => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     const functionDecl: FunctionDecl = {
       type: "FunctionDecl",
       //   position: getPosition(ctx),
@@ -344,7 +344,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -456,7 +456,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
@@ -498,7 +498,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         { type: "Identifier", name: ctx.type_().getText() },
       ];
       if (ctx.expressionList() !== null) {
-        console.log(ctx.expressionList().getText());
+        // console.log(ctx.expressionList().getText());
         for (const expr of this.visitExpressionList(ctx.expressionList())
           .expressions) {
           expressions.push(expr);
@@ -614,7 +614,7 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
-    console.log(ctx.getText());
+    // console.log(ctx.getText());
     const expressions: Expression[] = [];
     for (const expr of ctx.expression_list()) {
       expressions.push(this.visitExpression(expr));
@@ -643,6 +643,20 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   visitVarSpec = (ctx: VarSpecContext): VarSpec => {
     const zeroValueMap = { 'int': 0, 'bool': false };
     const typeMap = { 'int': 'IntegerLiteral', 'bool': 'BooleanLiteral' };
+
+    if (ctx.type_()?.getText() === "WaitGroup") {
+      if (ctx.expressionList() !== null) {
+        throw new Error("WaitGroup cannot be initialized with an expression");
+      }
+      return {
+        type: "VarSpec",
+        //   position: getPosition(ctx),
+        identifierList: this.visitIdentifierList(ctx.identifierList()),
+        dataType: ctx.type_()?.getText(),
+        expressionList: undefined,
+      }
+    }
+
     if (ctx.expressionList() === null) {
       return {
         type: "VarSpec",
@@ -652,8 +666,8 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         expressionList: {
           type: "ExpressionList",
           expressions: ctx.identifierList().IDENTIFIER_list().map(() => ({
-            type: typeMap[ctx.type_().getText()],
-            value: zeroValueMap[ctx.type_().getText()],
+            type: typeMap[ctx.type_()?.getText()],
+            value: zeroValueMap[ctx.type_()?.getText()],
           })),
         },
       };
