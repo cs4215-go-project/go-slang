@@ -3,7 +3,7 @@ import Memory, { Tag } from "../utils/memory/memory";
 import {compile, Instruction} from "./compiler";
 import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";
 
-const MAX_STEPS = 100000;
+const MAX_STEPS = 800000;
 
 export type Literal = number | boolean;
 export type BuiltinMetadata = { [key: string]: { id: number, arity: number }};
