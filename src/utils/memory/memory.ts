@@ -556,11 +556,11 @@ export default class Memory {
      * where sudog structs consist of [goroutineId, valueAddr]
      */
     allocateWaitQueue(): number {
-        const addr = this.allocateNode(Tag.WaitQueue, 1);
+        const addr = this.allocateNode(Tag.WaitQueue, NODE_SIZE);
         this.setByteAtOffset(addr, WAIT_QUEUE_SEND_IDX_OFFSET, 0);
         this.setByteAtOffset(addr, WAIT_QUEUE_RECV_IDX_OFFSET, 0);
         this.setByteAtOffset(addr, WAIT_QUEUE_QSIZE_OFFSET, 0);
-        return addr
+        return addr;
     }
 
     getWaitQueueSendIdx(addr: number): number {
@@ -822,12 +822,26 @@ export default class Memory {
         if (addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
             return;
         }
-        
+
         this.setMarked(addr, MarkedStatus.Marked);
+
+        // add special marking for waitqueues due to structure of its children
+        if (this.isWaitQueue(addr)) {
+            this.markWaitQueue(addr);
+            return;
+        }
 
         const numChildren = this.getNumChildren(addr);
         for (let i = 0; i < numChildren; i++) {
             this.mark(this.getChild(addr, i));
+        }
+    }
+
+    markWaitQueue(wqAddr: number) {
+        const numChildren = this.getNumChildren(wqAddr);
+        for (let i = 0; i < numChildren; i++) {
+            const valueAddr = this.getSecondFourBytesOfChild(wqAddr, i); // ints in sudog structs
+            this.mark(valueAddr);
         }
     }
 
