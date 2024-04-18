@@ -1,5 +1,6 @@
-import parse from "../../parser/parser";
+import parse from "../parser/parser";
 import Memory, { Tag } from "../utils/memory/memory";
+import { Opcode } from "../utils/opcodes";
 import {compile, Instruction} from "./compiler";
 import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";
 
@@ -102,7 +103,7 @@ export class Machine {
     }
 
     async run(): Promise<any> {  
-        while (this.instructions[this.pc].opcode !== "DONE") {
+        while (this.instructions[this.pc].opcode !== Opcode.DONE) {
             if (this.numSteps++ > MAX_STEPS) {
                 throw new Error("maximum number of steps exceeded, potential infinite loop detected");
             }
@@ -177,12 +178,12 @@ export class Machine {
 
     async execute(instr: Instruction): Promise<void> {
         switch (instr.opcode) {
-            case "LDC": {
+            case Opcode.LDC: {
                 const addr = this.memory.box(instr.value);
                 this.opStack.push(addr);
                 break;
             }
-            case "BINOP": {
+            case Opcode.BINOP: {
                 const rightOpAddr = this.opStack.pop();
                 const leftOpAddr = this.opStack.pop();
                 
@@ -202,7 +203,7 @@ export class Machine {
                 this.opStack.push(resultAddr);
                 break;
             }
-            case "SEND": {
+            case Opcode.SEND: {
                 const valueAddr = this.opStack.pop();
                 const chanAddr = this.opStack.pop();
                 const chan = this.memory.unbox(chanAddr);
@@ -232,7 +233,7 @@ export class Machine {
 
                 break;
             }
-            case "RECV": {
+            case Opcode.RECV: {
                 const chanAddr = this.opStack.pop();
                 const chan = this.memory.unbox(chanAddr);
 
@@ -262,7 +263,7 @@ export class Machine {
                 this.opStack.push(valueAddr);
                 break;
             }
-            case "UNOP": {
+            case Opcode.UNOP: {
                 const opAddr = this.opStack.pop();
                 const operand = this.memory.unbox(opAddr);
 
@@ -275,7 +276,7 @@ export class Machine {
                 this.opStack.push(resultAddr);
                 break;
             }
-            case "JOF": {
+            case Opcode.JOF: {
                 const addr = this.opStack.pop();
                 const condition = this.memory.unbox(addr);
 
@@ -284,15 +285,15 @@ export class Machine {
                 }
                 break;
             }
-            case "GOTO": {
+            case Opcode.GOTO: {
                 this.pc = instr.targetInstr;
                 break;
             }
-            case "POP": {
+            case Opcode.POP: {
                 this.opStack.pop();
                 break;
             }
-            case "ENTER_SCOPE": {
+            case Opcode.ENTER_SCOPE: {
                 const blockframeAddr = this.memory.allocateBlockframe(this.env);
                 this.runtimeStack.push(blockframeAddr);
 
@@ -306,12 +307,12 @@ export class Machine {
                 this.env = this.memory.extendEnv(this.env, newFrameAddr);
                 break;
             }
-            case "EXIT_SCOPE": {
+            case Opcode.EXIT_SCOPE: {
                 const blockframeAddr = this.runtimeStack.pop();
                 this.env = this.memory.getBlockframeParentEnv(blockframeAddr);
                 break;
             }
-            case "LD": {
+            case Opcode.LD: {
                 const addr = this.memory.getValueFromEnv(this.env, instr.compilePos);
                 if (this.memory.isUnassigned(addr)) {
                     throw new Error("variable '" + instr.sym + "' used before assignment");
@@ -319,17 +320,17 @@ export class Machine {
                 this.opStack.push(addr);
                 break
             }
-            case "ASSIGN": {
+            case Opcode.ASSIGN: {
                 const addr = this.opStack[this.opStack.length - 1];
                 this.memory.setValueInEnv(this.env, instr.compilePos, addr);
                 break;
             }
-            case "LDF": {
+            case Opcode.LDF: {
                 const closureAddr = this.memory.allocateClosure(instr.arity, instr.skip, this.env);
                 this.opStack.push(closureAddr);
                 break;
             }
-            case "CALL": {
+            case Opcode.CALL: {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
 
@@ -365,7 +366,7 @@ export class Machine {
                 this.pc = newPc;
                 break;
             }
-            case "TAIL_CALL": {
+            case Opcode.TAIL_CALL: {
                 const arity = instr.arity;
                 const closureAddr = this.opStack[this.opStack.length - 1 - arity];
 
@@ -397,7 +398,7 @@ export class Machine {
                 this.pc = newPc;
                 break;
             }
-            case "RESET": {
+            case Opcode.RESET: {
                 const topFrameAddr = this.runtimeStack.pop();
                 if (this.memory.isCallframe(topFrameAddr)) {
                     this.pc = this.memory.getCallframePc(topFrameAddr);
@@ -407,7 +408,7 @@ export class Machine {
                 }
                 break;
             }
-            case "START_GOROUTINE": {
+            case Opcode.START_GOROUTINE: {
                 const g = this.scheduler.scheduleGoroutine();
                 if (this.scheduler.currentGoroutine() === undefined) {
                     const [_, timeSlice] = this.scheduler.runNextGoroutine();
@@ -427,7 +428,7 @@ export class Machine {
                 }
                 break;
             }
-            case "STOP_GOROUTINE": {
+            case Opcode.STOP_GOROUTINE: {
                 // if it's main, then we're done
                 if (this.scheduler.currentGoroutine() === 0) {
                     this.mainDone = true;
@@ -449,7 +450,7 @@ export class Machine {
 
                 break;
             }
-            case "MAKE_WAITGROUP": {
+            case Opcode.MAKE_WAITGROUP: {
                 const wgAddr = this.memory.allocateWaitGroup();
                 this.opStack.push(wgAddr);
                 break;

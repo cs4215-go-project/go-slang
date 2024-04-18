@@ -1,4 +1,4 @@
-import parse from "./parser/parser";
+import parse from "./src/parser/parser";
 
 const input = `
 package main
