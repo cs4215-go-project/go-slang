@@ -559,8 +559,12 @@ func main() {
     n := 10
     for i := 0; i < n; i = i + 2 {
         println(i)
+        z := 2
+        for j := 0; j < n; j = j + 2 {
+            println(i + j + z)
+        }
     }
-    
+
     return i
 }
     `
