@@ -1,4 +1,4 @@
-import parse from "../../parser/parser";
+import parse from "../parser/parser";
 import Memory, { Tag } from "../utils/memory/memory";
 import {compile, Instruction} from "./compiler";
 import { FIFOScheduler, GoroutineId, Scheduler } from "./scheduler";

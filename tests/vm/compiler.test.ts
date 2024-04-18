@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 import { compile } from '../../src/vm/compiler';
-import { SourceFile } from '../../parser/ast';
+import { SourceFile } from '../../src/parser/ast';
 
 describe("binary expression", () => {
     const input = (op): SourceFile => ({
