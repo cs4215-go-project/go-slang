@@ -550,4 +550,21 @@ func main() {
     console.log(result)
     expect(result).toBe(1);
   }, 15000);
+
+  test("should fail", async () => {
+    const input = `
+package main
+
+func main() {
+    n := 10
+    for i := 0; i < n; i = i + 2 {
+        println(i)
+    }
+    
+    return i
+}
+    `
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result)
+  });
 });

@@ -40,14 +40,6 @@ function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
                     locals.push((expr as Identifier).name)
                 }
             }
-        } else if (decl.type === "ForStatement") {
-            if (decl.init && decl.init.type === "DeclareAssign") {
-                for (const expr of (decl.init as DeclareAssign).left) {
-                    if (expr.type === "Identifier") {
-                        locals.push((expr as Identifier).name)
-                    }
-                }
-            }
         }
     }
     return locals;
@@ -311,9 +303,11 @@ const compileComp = {
         instrs[wc++] = { opcode: "RESET" };
     },
     "ForStatement": (comp: ForStatement, cte: CompileTimeEnvironment) => {
+        let locals = [];
         if (comp.init !== undefined) {
+            locals = scanDeclarations([comp.init]);
             instrs[wc++] = { opcode: "ENTER_SCOPE", numDeclarations: 1}
-            compileHelper(comp.init, cte);
+            compileHelper(comp.init, compileTimeEnvironmentExtend(locals, cte));
             instrs[wc++] = { opcode: "POP" };
         }
 
@@ -322,15 +316,15 @@ const compileComp = {
         const loopEnd: NOPInstruction = { opcode: "NOP", targetInstr: undefined };
         endLocations.push(loopEnd);
 
-        compileHelper(comp.condition, cte);
+        compileHelper(comp.condition, compileTimeEnvironmentExtend(locals, cte));
         const jof = { opcode: "JOF", targetInstr: undefined };
         instrs[wc++] = jof;
 
-        compileHelper(comp.body, cte);
+        compileHelper(comp.body, compileTimeEnvironmentExtend(locals, cte));
         instrs[wc++] = { opcode: "POP" };
         
         if (comp.post !== undefined) {
-            compileHelper(comp.post, cte);
+            compileHelper(comp.post, compileTimeEnvironmentExtend(locals, cte));
             instrs[wc++] = { opcode: "POP" };
         }
 
