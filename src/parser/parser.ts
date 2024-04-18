@@ -106,9 +106,6 @@ function getPosition(ctx: ParserRuleContext): Position {
 class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   // we ignore imports and methods declarations.
   visitSourceFile = (ctx: SourceFileContext): SourceFile => {
-    // console.log(ctx.start.line, ctx.start.column, ctx.start.tokenIndex, ctx.start.start, ctx.start.stop);
-    // console.log(ctx.stop.line, ctx.stop.column, ctx.stop.tokenIndex, ctx.stop.start, ctx.stop.stop);
-
     const declarations: SourceLevelDeclaration[] = [];
     for (const decl of ctx.declaration_list()) {
       declarations.push(this.visitDeclaration(decl));
@@ -128,7 +125,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
 
   // we dont support generics
   visitFunctionDecl = (ctx: FunctionDeclContext): FunctionDecl => {
-    // console.log(ctx.getText());
     const functionDecl: FunctionDecl = {
       type: "FunctionDecl",
       //   position: getPosition(ctx),
@@ -344,7 +340,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpression = (ctx: ExpressionContext): Expression => {
-    // console.log(ctx.getText());
     if (ctx == null) {
       throw new Error("Expression is null");
     }
@@ -456,7 +451,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitPrimaryExpr = (ctx: PrimaryExprContext): Expression => {
-    // console.log(ctx.getText());
     if (ctx.IDENTIFIER() != null) {
       return {
         type: "Identifier",
@@ -498,7 +492,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
         { type: "Identifier", name: ctx.type_().getText() },
       ];
       if (ctx.expressionList() !== null) {
-        // console.log(ctx.expressionList().getText());
         for (const expr of this.visitExpressionList(ctx.expressionList())
           .expressions) {
           expressions.push(expr);
@@ -614,7 +607,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitExpressionList = (ctx: ExpressionListContext): ExpressionList => {
-    // console.log(ctx.getText());
     const expressions: Expression[] = [];
     for (const expr of ctx.expression_list()) {
       expressions.push(this.visitExpression(expr));
@@ -715,7 +707,6 @@ class CustomVisitor extends GoParserVisitor<GoNodeBase> {
   };
 
   visitBasicLit = (ctx: BasicLitContext): BasicLiteral => {
-    // console.log(ctx.getText());
     if (ctx.integer() != null) {
       return {
         type: "IntegerLiteral",

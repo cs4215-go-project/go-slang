@@ -111,14 +111,10 @@ export class Machine {
             if (this.remainingTimeSlice && this.remainingTimeSlice < 0) {
                 throw new Error("Negative time slice")
             }
-            // TODO: error when deadlock
-            // console.log("current goroutine", this.scheduler.currentGoroutine())
-            // console.log("remaining time slice", this.remainingTimeSlice)
+
             if (!this.mainDone && this.scheduler.currentGoroutine() !== undefined && this.remainingTimeSlice === 0) {
-                // console.log("prev goroutine", this.scheduler.currentGoroutine())
                 // context switch due to time slice expiration, not blocked
                 await this.contextSwitch(false);
-                // console.log("curr goroutine", this.scheduler.currentGoroutine())
             }
             
             const instr = this.instructions[this.pc++];
@@ -147,7 +143,6 @@ export class Machine {
 
         let g = this.scheduler.runNextGoroutine();
         if (g === null) {
-            console.log("sleeping:", this.sleeping)
             if (this.sleeping.length === 0) {
                 throw new Error("fatal error: all goroutines are asleep - deadlock!")
             }
@@ -238,7 +233,6 @@ export class Machine {
                 const chan = this.memory.unbox(chanAddr);
 
                 let valueAddr = this.memory.receiveFromIntChannel(chan)
-                // console.log("received", valueAddr)
                 if (valueAddr === -1) {
                     // empty channel, block goroutine
                     const g = this.scheduler.currentGoroutine();

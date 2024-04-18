@@ -7,7 +7,6 @@ const builtinArity = [1, 1, 1, 1, 1, 2, 2, 2, 1, 1]
 type CompileTimeEnvironment = string[][];
 
 function compileTimeEnvironmentPosition(cte: CompileTimeEnvironment, identifier: string): [number, number] {
-    console.log(cte)
     let frameIndex = cte.length;
     while (valueIndex(cte[--frameIndex], identifier) === -1) {}
     return [frameIndex, valueIndex(cte[frameIndex], identifier)];
@@ -28,7 +27,6 @@ function valueIndex(frame: string[], identifier: string) {
 function scanDeclarations(comp: Statement[] | SourceLevelDeclaration[]) {
     let locals = [];
     for (const decl of comp) {
-        // console.log(decl, decl.type)
         if (decl.type === "ConstDecl" || decl.type === "VarDecl") {
             for (const spec of (decl as ConstDecl).specs) {
                 locals = locals.concat(spec.identifierList.identifiers.map((id) => id.name));
@@ -171,9 +169,7 @@ const compileComp = {
         goto.targetInstr = wc;
     },
     "Block": (comp: Block, cte: CompileTimeEnvironment) => {
-        // console.log(comp, cte)
         const locals = scanDeclarations(comp.statementList.statements);
-        // console.log(locals)
 		instrs[wc++] = { opcode: Opcode.ENTER_SCOPE, numDeclarations: locals.length };
         if (comp.statementList.statements.length === 0) {
             instrs[wc++] = { opcode: Opcode.LDC, value: undefined};
@@ -195,7 +191,6 @@ const compileComp = {
         }
 
         // store precomputed position information in LD instruction
-        // console.log(cte)
         instrs[wc++] = {
             opcode: Opcode.LD,
             compilePos: compileTimeEnvironmentPosition(cte, comp.name)
@@ -236,7 +231,6 @@ const compileComp = {
         }
     },
     "VarDecl": (comp: VarDecl, cte: CompileTimeEnvironment) => {
-        // console.log("CTE", cte)
         for (const spec of comp.specs) {
             for (let i = 0; i < spec.identifierList.identifiers.length; i++) {
                 if (spec.expressionList) {
@@ -257,7 +251,6 @@ const compileComp = {
     "Assignment": (comp: Assignment, cte: CompileTimeEnvironment) => {
         for (let i = 0; i < comp.left.length; i++) {
             compileHelper(comp.right[i], cte);
-            // console.log("Assignment", (comp.left[i] as Identifier).name, compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name))
             instrs[wc++] = {
                 opcode: Opcode.ASSIGN,
                 compilePos: compileTimeEnvironmentPosition(cte, (comp.left[i] as Identifier).name)
@@ -393,7 +386,6 @@ const compileComp = {
 }
 
 export function compileHelper (node: GoNodeBase, cte: CompileTimeEnvironment) {
-    // console.log(node.type)
     compileComp[node.type](node, cte);
 }
 
