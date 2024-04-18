@@ -819,7 +819,7 @@ export default class Memory {
     }
 
     mark(addr: number) {
-        if (addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
+        if (addr < this.heapBottom || addr >= this.heapSize || this.getMarked(addr) === MarkedStatus.Marked) {
             return;
         }
 

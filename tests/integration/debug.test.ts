@@ -13,8 +13,13 @@ const program = `
     package main
 
     func main() {
-        for i := 0; i < 12; i = i + 3 {
-            j := i
+        n := 10
+        for i := 0; i < n; i = i + 2 {
+            println(i)
+        }
+        
+        for j := 1; j < n; j = j + 2 {
+            println(i)
         }
     }
 `;
