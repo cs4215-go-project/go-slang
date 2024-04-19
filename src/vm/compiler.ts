@@ -130,7 +130,6 @@ const compileComp = {
     },
     "FunctionCall": (comp: FunctionCall, cte: CompileTimeEnvironment) => {
         compileHelper(comp.func, cte);
-
         if (comp.args) {
             if (comp.func.type === "FunctionLiteral") {
                 // function literals don't have an identifier
@@ -138,12 +137,17 @@ const compileComp = {
                 if (arity !== comp.args.length) {
                     throw new Error(`Function called with wrong number of arguments: expected ${arity}, got ${comp.args.length}`)
                 }
-            } else {
+            } else if (comp.func.type === "Identifier") {
                 const funcPos = compileTimeEnvironmentPosition(cte, comp.func.name);
                 const arity = compileTimePosToArity[serializeCompileTimePos(funcPos)];
                 if (arity !== undefined && arity !== comp.args.length) {
                     throw new Error(`Function '${comp.func.name}' called with wrong number of arguments: expected ${arity}, got ${comp.args.length}`)
                 }
+            } else if (comp.func.type === "FunctionCall") {
+                // do nothing, as the arity is not known due to the function
+                // being a function call itself
+            } else {
+                throw new Error("FunctionCall with unknown function type")
             }
 
             for (const arg of comp.args) {

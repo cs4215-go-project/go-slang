@@ -194,7 +194,7 @@ export interface CloseExpression extends GoNodeBase {
 
 export interface FunctionCall extends GoNodeBase {
   type: "FunctionCall";
-  func: Identifier | FunctionLiteral;
+  func: Identifier | FunctionLiteral | FunctionCall;
   args: Expression[];
 }
 

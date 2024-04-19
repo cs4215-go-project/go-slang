@@ -15,7 +15,9 @@ export default async function parseCompileAndRun(memSize: number, input: string,
         const parsed = parse(input);
         console.log(JSON.stringify(parsed, null, 2));
         const instructions = compile(parsed);
-        console.log(instructions);
+        console.log(instructions.map(instr => {
+            return {...instr, opcode: Opcode[instr.opcode]}
+        }));
         return await new Machine(memSize, instructions, setOutput).run();
     } catch (e) {
         return e;
@@ -555,6 +557,7 @@ export class Machine {
             println: {
                 func: () => {
                     const addr = this.opStack.pop();
+                    console.log("DEBUG", addr, this.memory.getTag(addr));
 
                     if (!this.memory.isInt(addr) && !this.memory.isBoolean(addr)) {
                         throw new Error("println() only allowed for ints and booleans");

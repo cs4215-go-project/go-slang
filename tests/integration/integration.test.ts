@@ -571,4 +571,51 @@ func main() {
     const result = await parseCompileAndRun(2048, input, setOutputStub);
     console.log(result)
   });
+
+  test("closure", async () => {
+    const input = `
+package main
+
+func makef(ch chan int, x int) func (int) int {
+    z := 100
+    f := func(y int) {
+        ch <- x + y + z
+    }
+    return f
+}
+
+func main() {
+    ch := make(chan int)
+    go makef(ch, 3)(2)
+    return <-ch
+}`
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result)
+    expect(result).toBe(105);
+  })
+
+  test("triple nested closure", async () => {
+    const input = `
+package main
+
+func makef(ch chan int, x int) func (int) int {
+    z := 100
+    f := func(y int) {
+        g := func(a int) {
+            ch <- x + y + z + a
+        }
+        return g
+    }
+    return f
+}
+
+func main() {
+    ch := make(chan int)
+    go makef(ch, 3)(2)(1)
+    return <-ch
+}`
+    const result = await parseCompileAndRun(2048, input, setOutputStub);
+    console.log(result)
+    expect(result).toBe(106);
+  })
 });
