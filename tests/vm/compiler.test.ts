@@ -1,6 +1,7 @@
 import { describe, expect, test } from '@jest/globals';
 import { compile } from '../../src/vm/compiler';
 import { SourceFile } from '../../src/parser/ast';
+import { Opcode } from '../../src/utils/opcodes';
 
 describe("binary expression", () => {
     const input = (op): SourceFile => ({
@@ -47,12 +48,12 @@ describe("binary expression", () => {
     test("addition", () => {
         const instructions = compile(input("+"));
         expect(instructions).toEqual([
-            { opcode: "ENTER_SCOPE", numDeclarations: 0 },
-            { opcode: "LDC", value: 1 },
-            { opcode: "LDC", value: 2 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "DONE" }
+            { opcode: Opcode.ENTER_SCOPE, numDeclarations: 0 },
+            { opcode: Opcode.LDC, value: 1 },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.DONE }
         ])
     })
 })
@@ -91,10 +92,10 @@ describe("constant declaration", () => {
     const instructions = compile(input);
         expect(instructions).toEqual([
             { opcode: "ENTER_SCOPE", numDeclarations: 1 },
-            { opcode: "LDC", value: 1 },
-            { opcode: "ASSIGN", compilePos: [1, 0] },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 1 },
+            { opcode: Opcode.ASSIGN, compilePos: [1, 0] },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.DONE },
         ])
   })
 })

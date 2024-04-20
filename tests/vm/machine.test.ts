@@ -1,16 +1,17 @@
 import { describe, expect, test } from '@jest/globals';
 import { Machine } from '../../src/vm/machine';
 import { Instruction } from '../../src/vm/compiler';
+import { Opcode } from '../../src/utils/opcodes';
 
 const setOutputStub = (output: any) => {};
 
 describe("binary expression", () => {
     const simpleBinInstructions = (op: string, v1, v2): Instruction[] => {
         return [
-            { opcode: "LDC", value: v1 },
-            { opcode: "LDC", value: v2 },
-            { opcode: "BINOP", operator: op },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: v1 },
+            { opcode: Opcode.LDC, value: v2 },
+            { opcode: Opcode.BINOP, operator: op },
+            { opcode: Opcode.DONE },
         ];
     };
 
@@ -100,9 +101,9 @@ describe("binary expression", () => {
 describe("unary expression", () => {
     const simpleUnaryInstructions = (op: string, v) => {
         return [
-            { opcode: "LDC", value: v },
-            { opcode: "UNOP", operator: op },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: v },
+            { opcode: Opcode.UNOP, operator: op },
+            { opcode: Opcode.DONE },
         ];
     };
 
@@ -125,12 +126,12 @@ describe("more complex expressions", () => {
     test("precedence", () => {
         // 2 * 3 + 4
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "LDC", value: 3 },
-            { opcode: "BINOP", operator: "*" },
-            { opcode: "LDC", value: 4 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.BINOP, operator: "*" },
+            { opcode: Opcode.LDC, value: 4 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(512, instructions, setOutputStub);
 
@@ -140,12 +141,12 @@ describe("more complex expressions", () => {
     test("parentheses", () => {
         // 2 * (3 + 4)
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "LDC", value: 3 },
-            { opcode: "LDC", value: 4 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "BINOP", operator: "*" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.LDC, value: 4 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.BINOP, operator: "*" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(512, instructions, setOutputStub);
         expect(machine.run()).toBe(14);
@@ -154,14 +155,14 @@ describe("more complex expressions", () => {
     test("precedence and parentheses", () => {
         // 2 * (3 + 4) + 5
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "LDC", value: 3 },
-            { opcode: "LDC", value: 4 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "BINOP", operator: "*" },
-            { opcode: "LDC", value: 5 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.LDC, value: 4 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.BINOP, operator: "*" },
+            { opcode: Opcode.LDC, value: 5 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(512, instructions, setOutputStub);
 
@@ -171,13 +172,13 @@ describe("more complex expressions", () => {
     test("binary and unary", () => {
         // -2 + 3 * 4
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "UNOP", operator: "-" },
-            { opcode: "LDC", value: 3 },
-            { opcode: "LDC", value: 4 },
-            { opcode: "BINOP", operator: "*" },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.UNOP, operator: "-" },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.LDC, value: 4 },
+            { opcode: Opcode.BINOP, operator: "*" },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(512, instructions, setOutputStub);
 
@@ -188,10 +189,10 @@ describe("more complex expressions", () => {
 describe("unknown operator", () => {
     test("throws a binop error", () => {
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "LDC", value: 3 },
-            { opcode: "BINOP", operator: "_" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.BINOP, operator: "_" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(256, instructions, setOutputStub);
 
@@ -200,9 +201,9 @@ describe("unknown operator", () => {
 
     test("throws an unop error", () => {
         const instructions = [
-            { opcode: "LDC", value: 2 },
-            { opcode: "UNOP", operator: "_" },
-            { opcode: "DONE" },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.UNOP, operator: "_" },
+            { opcode: Opcode.DONE },
         ];
         const machine = new Machine(256, instructions, setOutputStub);
 
@@ -218,15 +219,15 @@ describe("variable declaration", () => {
          *  x + 3
          */ 
         const instructions = [
-            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
-            { opcode: "LDC", value: 2 },
-            { opcode: "ASSIGN", compilePos: [ 1, 0 ] },
-            { opcode: "POP" },
-            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
-            { opcode: "LDC", value: 3 },
-            { opcode: "BINOP", operator: "+" },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "DONE" }
+            { opcode: Opcode.ENTER_SCOPE, numDeclarations: 1 },
+            { opcode: Opcode.LDC, value: 2 },
+            { opcode: Opcode.ASSIGN, compilePos: [ 1, 0 ] },
+            { opcode: Opcode.POP },
+            { opcode: Opcode.LD, sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: Opcode.LDC, value: 3 },
+            { opcode: Opcode.BINOP, operator: "+" },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.DONE }
         ];
 
         const machine = new Machine(256, instructions, setOutputStub);
@@ -243,20 +244,20 @@ describe("variable declaration", () => {
          * }
          */
         const instructions = [
-            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
-            { opcode: "LDC", value: 20 },
-            { opcode: "ASSIGN", compilePos: [ 1, 0 ] },
-            { opcode: "POP" },
-            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
-            { opcode: "LDC", value: 33 },
-            { opcode: "ASSIGN", compilePos: [ 2, 0 ] },
-            { opcode: "POP" },
-            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
-            { opcode: "LD", sym: "y", compilePos: [ 2, 0 ] },
-            { opcode: "BINOP", operator: "*" },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "DONE" }
+            { opcode: Opcode.ENTER_SCOPE, numDeclarations: 1 },
+            { opcode: Opcode.LDC, value: 20 },
+            { opcode: Opcode.ASSIGN, compilePos: [ 1, 0 ] },
+            { opcode: Opcode.POP },
+            { opcode: Opcode.ENTER_SCOPE, numDeclarations: 1 },
+            { opcode: Opcode.LDC, value: 33 },
+            { opcode: Opcode.ASSIGN, compilePos: [ 2, 0 ] },
+            { opcode: Opcode.POP },
+            { opcode: Opcode.LD, sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: Opcode.LD, sym: "y", compilePos: [ 2, 0 ] },
+            { opcode: Opcode.BINOP, operator: "*" },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.DONE }
         ];
 
         const machine = new Machine(512, instructions, setOutputStub);
@@ -269,10 +270,10 @@ describe("variable declaration", () => {
          *   x
          */
         const instructions = [
-            { opcode: "ENTER_SCOPE", numDeclarations: 1 },
-            { opcode: "LD", sym: "x", compilePos: [ 1, 0 ] },
-            { opcode: "EXIT_SCOPE" },
-            { opcode: "DONE" }
+            { opcode: Opcode.ENTER_SCOPE, numDeclarations: 1 },
+            { opcode: Opcode.LD, sym: "x", compilePos: [ 1, 0 ] },
+            { opcode: Opcode.EXIT_SCOPE },
+            { opcode: Opcode.DONE }
         ];
 
         const machine = new Machine(256, instructions, setOutputStub);

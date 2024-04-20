@@ -5,3 +5,5 @@ node_modules/
 .npm
 .env
 .DS_Store
+*.js
+*.d.ts
