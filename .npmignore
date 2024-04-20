@@ -1,0 +1,22 @@
+# Source files and directories
+src/
+tests/
+examples/
+demo/
+
+# Configuration files
+tsconfig.json
+.eslintrc
+.prettierrc
+.editorconfig
+.vscode/
+
+# Documentation and other markdown files (except README.md)
+CONTRIBUTING.md
+CHANGELOG.md
+docs/
+
+# Miscellaneous files
+*.log
+*.temp
+*.cache
